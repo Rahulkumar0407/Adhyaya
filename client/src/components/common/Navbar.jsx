@@ -1,93 +1,137 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Flame, LogOut } from 'lucide-react';
+import { LogOut, Bell, User as UserIcon, Menu, X } from 'lucide-react';
 
 export default function Navbar() {
     const { user, logout, isAuthenticated } = useAuth();
     const location = useLocation();
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => {
-            setScrolled(window.scrollY > 10);
+            setScrolled(window.scrollY > 20);
         };
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Don't show navbar on landing page when not scrolled (for cleaner hero)
-    const isLanding = location.pathname === '/';
+    const navItems = [
+        { name: 'Home', path: '/dashboard', icon: 'home' },
+        { name: 'DSA', path: '/dsa', icon: 'code' },
+        { name: 'Core Subjects', path: '/courses?category=core', icon: 'menu_book' },
+        { name: 'System Design', path: '/courses?category=system-design', icon: 'architecture' },
+        { name: 'AI/ML', path: '/courses?category=ai-ml', icon: 'psychology' },
+        { name: 'Bhaukaal', path: '/leaderboard', icon: 'leaderboard' },
+    ];
 
     return (
-        <nav
-            className={`
-                fixed top-0 left-0 right-0 z-50
-                transition-all duration-300
-                ${scrolled || !isLanding
-                    ? 'bg-white shadow-sm border-b border-slate-100'
-                    : 'bg-white/80 backdrop-blur-sm'
-                }
-            `}
-        >
-            <div className="max-w-desktop mx-auto px-6 lg:px-8">
+        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'glass-panel shadow-lg' : 'bg-transparent'}`}>
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16 lg:h-20">
+
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-3 group">
-                        {/* Cartoon face logo */}
-                        <div className="relative w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-amber-300 to-amber-400 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform border-2 border-amber-500">
-                            <span className="text-xl lg:text-2xl">😊</span>
+                        <div className="size-10 text-babua-blue animate-pulse">
+                            <span className="material-symbols-outlined text-4xl">terminal</span>
                         </div>
-                        <span className="text-xl lg:text-2xl font-bold">
-                            <span className="text-slate-800">Babua</span>
-                            <span className="text-babua-primary">LMS</span>
-                        </span>
+                        <h2 className="font-bebas text-3xl tracking-wider text-white neon-text">
+                            BABUA <span className="text-babua-yellow">BPL</span>
+                        </h2>
                     </Link>
 
-                    {/* Right side */}
-                    <div className="flex items-center gap-4 lg:gap-6">
+                    {/* Desktop Navigation */}
+                    <div className="hidden lg:flex items-center gap-8">
                         {isAuthenticated ? (
                             <>
-                                {/* Streak badge - Desktop only */}
-                                <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-orange-50 border border-orange-200 rounded-full">
-                                    <Flame className="w-4 h-4 text-orange-500" />
-                                    <span className="text-sm font-semibold text-orange-600">
-                                        {user?.streakCount || 0} day streak
-                                    </span>
-                                </div>
-
-                                {/* Dashboard link */}
-                                <Link
-                                    to="/dashboard"
-                                    className="hidden lg:block text-slate-600 hover:text-slate-900 font-medium transition-colors"
-                                >
-                                    Dashboard
-                                </Link>
-
-                                {/* User avatar */}
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-babua-primary to-babua-secondary flex items-center justify-center text-white font-semibold shadow-md">
-                                        {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                                    </div>
-                                    <button
-                                        onClick={logout}
-                                        className="hidden lg:flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
+                                {navItems.map((item) => (
+                                    <Link
+                                        key={item.name}
+                                        to={item.path}
+                                        className={`flex items-center gap-2 text-sm font-bold tracking-widest uppercase transition-all duration-300 group ${location.pathname === item.path ? 'text-babua-yellow' : 'text-gray-300 hover:text-babua-blue'}`}
                                     >
-                                        <LogOut className="w-4 h-4" />
+                                        <span className="material-symbols-outlined text-lg group-hover:scale-125 transition-transform">{item.icon}</span>
+                                        {item.name}
+                                    </Link>
+                                ))}
+
+                                <div className="flex items-center gap-4 ml-4 pl-4 border-l border-white/10">
+                                    <button className="relative p-2 text-gray-300 hover:text-white transition-colors">
+                                        <Bell className="w-5 h-5" />
+                                        <span className="absolute top-2 right-2 size-2 bg-babua-orange rounded-full"></span>
                                     </button>
+
+                                    <div className="flex items-center gap-3">
+                                        <Link to="/profile" className="size-9 rounded-full bg-gradient-to-tr from-babua-blue to-babua-yellow p-[2px] hover:shadow-neon transition-shadow">
+                                            <div className="size-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                                                <div className="h-full w-full bg-gradient-to-tr from-babua-blue to-babua-yellow flex items-center justify-center text-black font-bold">
+                                                    {user?.name?.charAt(0) || 'B'}
+                                                </div>
+                                            </div>
+                                        </Link>
+                                        <button onClick={logout} className="p-2 text-gray-400 hover:text-red-400 transition-colors">
+                                            <LogOut className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 </div>
                             </>
                         ) : (
-                            <Link
-                                to="/login"
-                                className="px-6 py-2.5 rounded-full font-semibold text-babua-primary border-2 border-babua-primary/30 hover:bg-babua-primary hover:text-white transition-all duration-300 hover:shadow-lg hover:shadow-babua-primary/20"
-                            >
-                                Login
-                            </Link>
+                            <div className="flex items-center gap-4">
+                                <Link to="/login" className="px-6 py-2 rounded-full font-bold text-gray-300 hover:text-white transition-colors">
+                                    Login
+                                </Link>
+                                <Link to="/register" className="btn-primary-babua !py-2 !px-6 text-sm">
+                                    Signup
+                                </Link>
+                            </div>
                         )}
+                    </div>
+
+                    {/* Mobile Menu Toggle */}
+                    <div className="lg:hidden flex items-center gap-4">
+                        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-white">
+                            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                        </button>
                     </div>
                 </div>
             </div>
+
+            {/* Mobile Sidebar */}
+            {isMenuOpen && (
+                <div className="lg:hidden glass-panel fixed inset-0 top-16 z-40 animate-fade-in">
+                    <div className="flex flex-col p-6 gap-6">
+                        {isAuthenticated ? (
+                            <>
+                                {navItems.map((item) => (
+                                    <Link
+                                        key={item.name}
+                                        to={item.path}
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center gap-4 text-xl font-bold tracking-widest uppercase text-gray-300 active:text-babua-yellow"
+                                    >
+                                        <span className="material-symbols-outlined text-2xl text-babua-blue">{item.icon}</span>
+                                        {item.name}
+                                    </Link>
+                                ))}
+                                <button onClick={logout} className="mt-4 flex items-center gap-4 text-red-400 font-bold uppercase tracking-widest">
+                                    <LogOut className="w-6 h-6" />
+                                    Logout Session
+                                </button>
+                            </>
+                        ) : (
+                            <div className="flex flex-col gap-4">
+                                <Link to="/login" onClick={() => setIsMenuOpen(false)} className="w-full py-4 text-center font-bold text-white glass-panel rounded-xl">
+                                    Login
+                                </Link>
+                                <Link to="/register" onClick={() => setIsMenuOpen(false)} className="w-full py-4 text-center font-bold text-black bg-babua-yellow rounded-xl shadow-glow-yellow">
+                                    Signup
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </nav>
     );
 }

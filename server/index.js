@@ -1,6 +1,9 @@
+import dotenv from 'dotenv';
+// Load environment variables FIRST before any other imports
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import session from 'express-session';
@@ -14,9 +17,7 @@ import problemRoutes from './routes/problems.js';
 import revisionRoutes from './routes/revisions.js';
 import podRoutes from './routes/pods.js';
 import dashboardRoutes from './routes/dashboard.js';
-
-// Load environment variables
-dotenv.config();
+import profileRoutes from './src/routes/profile.js';
 
 // Initialize express app
 const app = express();
@@ -66,6 +67,7 @@ app.use('/api/problems', problemRoutes);
 app.use('/api/revisions', revisionRoutes);
 app.use('/api/pods', podRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

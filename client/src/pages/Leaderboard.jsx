@@ -10,36 +10,7 @@ export default function Leaderboard() {
                 backgroundSize: '40px 40px'
             }}></div>
 
-            {/* TopNavBar */}
-            <header className="sticky top-0 z-50 w-full border-b border-[#333] bg-[#0d0d0d]/90 backdrop-blur-md relative z-10">
-                <div className="max-w-[1400px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-                    {/* Logo Area */}
-                    <Link to="/" className="flex items-center gap-3 group cursor-pointer">
-                        <div className="size-8 text-primary animate-pulse">
-                            <span className="material-symbols-outlined text-3xl">terminal</span>
-                        </div>
-                        <h1 className="font-bebas text-3xl tracking-widest text-white group-hover:text-primary transition-colors relative">
-                            BABUA BPL_
-                        </h1>
-                    </Link>
-                    {/* Nav Links (Desktop) */}
-                    <nav className="hidden md:flex items-center gap-8">
-                        <Link className="text-gray-400 hover:text-primary font-mono text-sm tracking-widest uppercase transition-colors" to="/arena">Arena</Link>
-                        <Link className="text-gray-400 hover:text-primary font-mono text-sm tracking-widest uppercase transition-colors" to="/dashboard">My Gaddi</Link>
-                        <Link className="text-primary font-mono text-sm tracking-widest uppercase font-bold border-b-2 border-primary pb-1" to="/leaderboard">Leaderboard</Link>
-                    </nav>
-                    {/* User Status */}
-                    <div className="flex items-center gap-4">
-                        <div className="hidden md:flex items-center bg-surface-light border border-[#333] rounded-sm px-3 py-1.5 gap-2">
-                            <span className="material-symbols-outlined text-secondary text-sm">local_cafe</span>
-                            <span className="text-secondary font-mono text-xs font-bold">Chai Count: 50</span>
-                        </div>
-                        <div className="size-10 rounded-full border-2 border-primary bg-surface-dark overflow-hidden relative cursor-pointer hover:shadow-neon transition-shadow">
-                            <img alt="User Profile" className="object-cover size-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQZ21MZX6bvptgUbHszbF96tBZNyIYJph-jcp8a-mByOgoR4TaO3fxozMaIwrUUbvzQf0aVCmP5CG8vaR_YPG3lambiWtiLwDt9Q0un4uWMlqgC2k7BYMbQYRB08hcRxca4LIwt1Qb_s8Ol1MdWwadk_p_cVJxJCTIHT42RRnaAFXUZn9s7MYWfeB6tLtfCpFf0n1Ev9tsVbpGnSxdUt7yf-dyaM3stwc2d56ObGO8ZVXwXC6QP9TpGt8lVA1F2zRNRkqG_OmJlkA" />
-                        </div>
-                    </div>
-                </div>
-            </header>
+            {/* TopNavBar is provided by MainLayout - removed embedded header */}
 
             <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 md:px-8 py-8 flex flex-col gap-12 relative z-10">
                 {/* Page Heading */}

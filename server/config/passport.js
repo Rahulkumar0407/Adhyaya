@@ -1,55 +1,106 @@
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join, resolve } from 'path';
+import fs from 'fs';
+
+// Get directory path for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Try multiple paths to find .env
+const envPaths = [
+    join(__dirname, '../.env'),
+    join(__dirname, '../../.env'),
+    resolve(process.cwd(), '.env'),
+    resolve(process.cwd(), 'server/.env'),
+];
+
+let envLoaded = false;
+for (const envPath of envPaths) {
+    console.log('Trying .env path:', envPath, '- Exists:', fs.existsSync(envPath));
+    if (fs.existsSync(envPath)) {
+        // Read file content to debug
+        const fileContent = fs.readFileSync(envPath, 'utf8');
+        console.log('First 500 chars of .env:', fileContent.substring(0, 500));
+
+        const result = dotenv.config({ path: envPath, override: true });
+        if (result.error) {
+            console.error('Error loading .env:', result.error);
+        } else {
+            console.log('Parsed variables:', Object.keys(result.parsed || {}));
+            console.log('GOOGLE_CLIENT_ID from parsed:', result.parsed?.GOOGLE_CLIENT_ID?.substring(0, 20) + '...');
+        }
+        envLoaded = true;
+        break;
+    }
+}
+
+if (!envLoaded) {
+    console.error('Could not find .env file in any expected location!');
+}
+
+// Debug: Print actual env values
+console.log('ENV DEBUG - GOOGLE_CLIENT_ID value:', JSON.stringify(process.env.GOOGLE_CLIENT_ID));
+
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User from '../models/User.js';
 import { generateTokens } from '../middleware/auth.js';
 
+console.log('Passport config loading. GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'FOUND' : 'MISSING');
+
 // Configure Google OAuth Strategy
-passport.use(
-    new GoogleStrategy(
-        {
-            clientID: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: process.env.GOOGLE_CALLBACK_URL,
-        },
-        async (accessToken, refreshToken, profile, done) => {
-            try {
-                // Check if user already exists with this Google ID
-                let user = await User.findOne({ googleId: profile.id });
+if (process.env.GOOGLE_CLIENT_ID) {
+    console.log('Registering Google OAuth Strategy...');
+    passport.use(
+        new GoogleStrategy(
+            {
+                clientID: process.env.GOOGLE_CLIENT_ID,
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+                callbackURL: process.env.GOOGLE_CALLBACK_URL,
+            },
+            async (accessToken, refreshToken, profile, done) => {
+                try {
+                    // Check if user already exists with this Google ID
+                    let user = await User.findOne({ googleId: profile.id });
 
-                if (user) {
-                    // User exists, return user
-                    return done(null, user);
-                }
-
-                // Check if user exists with this email (but signed up with password)
-                user = await User.findOne({ email: profile.emails[0].value });
-
-                if (user) {
-                    // Link Google account to existing user
-                    user.googleId = profile.id;
-                    if (profile.photos && profile.photos[0]) {
-                        user.avatar = profile.photos[0].value;
+                    if (user) {
+                        // User exists, return user
+                        return done(null, user);
                     }
-                    await user.save();
+
+                    // Check if user exists with this email (but signed up with password)
+                    user = await User.findOne({ email: profile.emails[0].value });
+
+                    if (user) {
+                        // Link Google account to existing user
+                        user.googleId = profile.id;
+                        if (profile.photos && profile.photos[0]) {
+                            user.avatar = profile.photos[0].value;
+                        }
+                        await user.save();
+                        return done(null, user);
+                    }
+
+                    // Create new user
+                    user = await User.create({
+                        googleId: profile.id,
+                        email: profile.emails[0].value,
+                        name: profile.displayName || profile.name?.givenName || 'User',
+                        avatar: profile.photos && profile.photos[0] ? profile.photos[0].value : '',
+                        // Password not required for OAuth users
+                    });
+
                     return done(null, user);
+                } catch (error) {
+                    return done(error, null);
                 }
-
-                // Create new user
-                user = await User.create({
-                    googleId: profile.id,
-                    email: profile.emails[0].value,
-                    name: profile.displayName || profile.name?.givenName || 'User',
-                    avatar: profile.photos && profile.photos[0] ? profile.photos[0].value : '',
-                    // Password not required for OAuth users
-                });
-
-                return done(null, user);
-            } catch (error) {
-                return done(error, null);
             }
-        }
-    )
-);
+        )
+    );
+} else {
+    console.warn('Google OAuth credentials missing. Skipping Google Strategy initialization.');
+}
 
 // Serialize user for session
 passport.serializeUser((user, done) => {

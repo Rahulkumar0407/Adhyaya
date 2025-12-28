@@ -78,7 +78,7 @@ export function AuthProvider({ children }) {
     const handleOAuthCallback = async (accessToken, refreshToken) => {
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
-        
+
         try {
             const response = await api.get('/auth/me');
             setUser(response.data.data);
@@ -96,7 +96,8 @@ export function AuthProvider({ children }) {
             logout,
             updateUser,
             handleOAuthCallback,
-            isAuthenticated: !!user
+            isAuthenticated: !!user,
+            token: localStorage.getItem('accessToken') // Expose token for manual API calls
         }}>
             {children}
         </AuthContext.Provider>

@@ -2,26 +2,7 @@ export default function DSALearning() {
     return (
         <div className="min-h-screen bg-[#0b0f14] text-white">
 
-            {/* NAVBAR */}
-            <header className="h-16 flex items-center justify-between px-6 border-b border-white/10">
-                <div className="flex items-center gap-2 font-bold text-cyan-400">
-                    🚀 BABUA<span className="text-white">BPL</span>
-                </div>
 
-                <nav className="flex gap-8 text-sm text-gray-400">
-                    <span className="text-cyan-400">Dashboard</span>
-                    <span>Courses</span>
-                    <span>Arena</span>
-                    <span>Leaderboard</span>
-                </nav>
-
-                <div className="flex items-center gap-4 text-sm">
-                    <span className="bg-white/10 px-3 py-1 rounded-md">
-                        🔥 streak: 42 days
-                    </span>
-                    <div className="h-8 w-8 rounded-full bg-cyan-500" />
-                </div>
-            </header>
 
             {/* MAIN GRID */}
             <div className="grid grid-cols-[1fr_320px] gap-6 p-6">

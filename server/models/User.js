@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: function() {
+        required: function () {
             // Password required only if not using OAuth
             return !this.googleId;
         },
@@ -38,6 +38,12 @@ const userSchema = new mongoose.Schema({
         default: ''
     },
 
+    // Account Status
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+
     // Streak & Engagement
     streakCount: {
         type: Number,
@@ -56,6 +62,44 @@ const userSchema = new mongoose.Schema({
     babuaCoins: {
         type: Number,
         default: 0
+    },
+
+    // Coding Platform Profiles
+    codingProfiles: {
+        leetcode: {
+            username: { type: String, trim: true },
+            verified: { type: Boolean, default: false },
+            lastSynced: Date,
+            stats: {
+                totalSolved: { type: Number, default: 0 },
+                easySolved: { type: Number, default: 0 },
+                mediumSolved: { type: Number, default: 0 },
+                hardSolved: { type: Number, default: 0 },
+                ranking: Number,
+                contestRating: Number,
+                streak: { type: Number, default: 0 }
+            }
+        },
+        codeforces: {
+            username: { type: String, trim: true },
+            verified: { type: Boolean, default: false },
+            lastSynced: Date,
+            stats: {
+                rating: Number,
+                maxRating: Number,
+                rank: String,
+                solved: { type: Number, default: 0 }
+            }
+        },
+        hackerrank: {
+            username: { type: String, trim: true },
+            verified: { type: Boolean, default: false },
+            lastSynced: Date,
+            stats: {
+                badges: { type: Number, default: 0 },
+                certificates: { type: Number, default: 0 }
+            }
+        }
     },
 
     // Pattern Mastery Tracking

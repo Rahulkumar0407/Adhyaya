@@ -247,10 +247,8 @@ router.get('/google/callback',
             await user.save();
 
             // Redirect to frontend with tokens
-            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-            const redirectUrl = `${frontendUrl}/auth/callback?token=${accessToken}&refreshToken=${refreshToken}`;
-            
-            res.redirect(redirectUrl);
+            const frontendUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+            res.redirect(`${frontendUrl}/auth-success?accessToken=${accessToken}&refreshToken=${refreshToken}`);
         } catch (error) {
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
             res.redirect(`${frontendUrl}/login?error=oauth_failed`);

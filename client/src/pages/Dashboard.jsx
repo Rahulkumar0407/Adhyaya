@@ -16,7 +16,7 @@ export default function Dashboard() {
 
     return (
         <DashboardLayout>
-            <DashboardNavbar />
+            {/* Main Content */}
 
             <main className="flex-grow flex flex-col lg:flex-row max-w-[1400px] mx-auto w-full p-4 gap-6">
                 {/* Left Column: Dashboard Main */}
