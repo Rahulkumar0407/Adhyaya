@@ -469,3 +469,47 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: #1fb1f9;
 }
+
+/* Animated border for login card */
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes spin-border {
+  from {
+    --angle: 0deg;
+  }
+
+  to {
+    --angle: 360deg;
+  }
+}
+
+.animate-border-spin {
+  background: linear-gradient(var(--angle), #f97316, #ea580c, #f97316, transparent, transparent);
+  animation: spin-border 4s linear infinite;
+}
+
+/* Loading bar animation */
+@keyframes loading-bar {
+  0% {
+    width: 0%;
+    margin-left: 0;
+  }
+
+  50% {
+    width: 80%;
+    margin-left: 10%;
+  }
+
+  100% {
+    width: 0%;
+    margin-left: 100%;
+  }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 1.5s ease-in-out infinite;
+}

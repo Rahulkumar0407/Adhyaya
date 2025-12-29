@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import HeroSection from '../components/landing/HeroSection';
-import GameMapSection from '../components/landing/GameMapSection';
-import TestimonialsSection from '../components/landing/TestimonialsSection';
-import CTASection from '../components/landing/CTASection';
+import StatsSection from '../components/landing/StatsSection';
+import FeaturesSection from '../components/landing/FeaturesSection';
+import RoadmapSection from '../components/landing/RoadmapSection';
 import LandingFooter from '../components/landing/LandingFooter';
 
 export default function Landing() {
@@ -18,14 +18,15 @@ export default function Landing() {
     }, [isAuthenticated, navigate]);
 
     return (
-        <div className="min-h-screen bg-[#0b0f14]">
-            <main className="pb-20 md:pb-24">
+        <div className="min-h-screen bg-[#1a1a1a]">
+            <main>
                 <HeroSection />
-                <GameMapSection />
-                <TestimonialsSection />
-                <CTASection />
+                <StatsSection />
+                <FeaturesSection />
+                <RoadmapSection />
             </main>
             <LandingFooter />
         </div>
     );
 }
+

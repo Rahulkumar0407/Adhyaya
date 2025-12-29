@@ -1,36 +1,134 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Map, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Github, Twitter, Linkedin } from 'lucide-react';
+
+const footerLinks = {
+    product: {
+        title: 'Maal-Paani (Product)',
+        links: [
+            { name: 'Features', href: '/patterns' },
+            { name: 'Pricing', href: '/pricing' },
+            { name: 'Roadmap', href: '/roadmap' },
+        ],
+    },
+    resources: {
+        title: 'Gyaan (Resources)',
+        links: [
+            { name: 'Blog', href: '/blog' },
+            { name: 'Community', href: '/community' },
+            { name: 'Success Stories', href: '/stories' },
+        ],
+    },
+    company: {
+        title: 'Apni Company',
+        links: [
+            { name: 'About Us', href: '/about' },
+            { name: 'Naukri (Careers)', href: '/careers' },
+            { name: 'Sampark Karein', href: '/contact' },
+        ],
+    },
+};
 
 export default function LandingFooter() {
-    const location = useLocation();
-    const isMapActive = location.pathname === '/patterns' || location.pathname === '/';
-
     return (
-        <footer className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
-            <div className="container-babua">
-                {/* Navigation icons */}
-                <div className="flex items-center justify-around py-3 md:py-4">
-                    <Link
-                        to="/"
-                        className="flex flex-col items-center gap-1 transition-colors"
-                    >
-                        <Home className={`w-5 h-5 md:w-6 md:h-6 ${location.pathname === '/' ? 'text-blue-600' : 'text-gray-400'}`} />
-                        <span className={`text-xs font-medium ${location.pathname === '/' ? 'text-blue-600' : 'text-gray-400'}`}>Home</span>
-                    </Link>
-                    <Link
-                        to="/patterns"
-                        className="flex flex-col items-center gap-1 transition-colors"
-                    >
-                        <Map className={`w-5 h-5 md:w-6 md:h-6 ${isMapActive ? 'text-blue-600' : 'text-gray-400'}`} />
-                        <span className={`text-xs font-medium ${isMapActive ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>Map</span>
-                    </Link>
-                    <Link
-                        to="/dashboard"
-                        className="flex flex-col items-center gap-1 transition-colors"
-                    >
-                        <User className={`w-5 h-5 md:w-6 md:h-6 ${location.pathname === '/dashboard' ? 'text-blue-600' : 'text-gray-400'}`} />
-                        <span className={`text-xs font-medium ${location.pathname === '/dashboard' ? 'text-blue-600' : 'text-gray-400'}`}>Profile</span>
-                    </Link>
+        <footer className="bg-[#0f0f0f] border-t border-gray-800">
+            <div className="container-babua py-12 md:py-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+                    {/* Brand Column */}
+                    <div className="lg:col-span-1">
+                        <Link to="/" className="flex items-center gap-2 mb-4">
+                            <span className="text-2xl">🎯</span>
+                            <span className="text-xl font-bold text-white">BABUA BPL</span>
+                        </Link>
+                        <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                            Empowering India's engineering talent. Hamra mission: Har engineer ko haath mein offer lettar.
+                        </p>
+                    </div>
+
+                    {/* Product Links */}
+                    <div>
+                        <h3 className="text-gray-300 font-semibold mb-4">{footerLinks.product.title}</h3>
+                        <ul className="space-y-3">
+                            {footerLinks.product.links.map((link) => (
+                                <li key={link.name}>
+                                    <Link
+                                        to={link.href}
+                                        className="text-gray-400 hover:text-orange-400 transition-colors text-sm"
+                                    >
+                                        {link.name}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Resources Links */}
+                    <div>
+                        <h3 className="text-gray-300 font-semibold mb-4">{footerLinks.resources.title}</h3>
+                        <ul className="space-y-3">
+                            {footerLinks.resources.links.map((link) => (
+                                <li key={link.name}>
+                                    <Link
+                                        to={link.href}
+                                        className="text-gray-400 hover:text-orange-400 transition-colors text-sm"
+                                    >
+                                        {link.name}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Company Links */}
+                    <div>
+                        <h3 className="text-gray-300 font-semibold mb-4">{footerLinks.company.title}</h3>
+                        <ul className="space-y-3">
+                            {footerLinks.company.links.map((link) => (
+                                <li key={link.name}>
+                                    <Link
+                                        to={link.href}
+                                        className="text-gray-400 hover:text-orange-400 transition-colors text-sm"
+                                    >
+                                        {link.name}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+
+                {/* Bottom Bar */}
+                <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <p className="text-gray-500 text-sm">
+                        © 2024 BABUA BPL. Made with <span className="text-red-500">❤</span> & LIT Choklet.
+                    </p>
+
+                    {/* Social Links */}
+                    <div className="flex items-center gap-4">
+                        <a
+                            href="https://github.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-colors"
+                        >
+                            <Github className="w-5 h-5 text-gray-400" />
+                        </a>
+                        <a
+                            href="https://twitter.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-colors"
+                        >
+                            <Twitter className="w-5 h-5 text-gray-400" />
+                        </a>
+                        <a
+                            href="https://linkedin.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-colors"
+                        >
+                            <Linkedin className="w-5 h-5 text-gray-400" />
+                        </a>
+                    </div>
                 </div>
             </div>
         </footer>

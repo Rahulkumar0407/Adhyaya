@@ -1,11 +1,19 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { Menu, X } from 'lucide-react';
 import gsap from 'gsap';
+
+const navLinks = [
+    { name: 'Jugaad (Patterns)', href: '/patterns' },
+    { name: 'Charcha (Chats)', href: '/pods' },
+    { name: 'Hamara Adda (About)', href: '/about' },
+];
 
 export default function Header() {
     const headerRef = useRef(null);
     const logoRef = useRef(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const { isAuthenticated } = useAuth();
 
@@ -22,40 +30,98 @@ export default function Header() {
     return (
         <header
             ref={headerRef}
-            className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm"
+            className="fixed top-0 left-0 right-0 z-50 bg-[#1a1a1a]/95 backdrop-blur-md border-b border-gray-800/50"
         >
             <div className="container-babua">
                 <div className="flex items-center justify-between h-16 md:h-20">
                     {/* Logo */}
                     <Link to="/" ref={logoRef} className="flex items-center gap-2 md:gap-3">
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-yellow-400 flex items-center justify-center shadow-md">
-                            {/* Auto-rickshaw icon - simplified */}
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5H6.5C5.84 5 5.28 5.42 5.08 6.01L3 12V20C3 20.55 3.45 21 4 21H5C5.55 21 6 20.55 6 20V19H18V20C18 20.55 18.45 21 19 21H20C20.55 21 21 20.55 21 20V12L18.92 6.01ZM6.5 6.5H17.5L19.11 11H4.89L6.5 6.5ZM6.5 16C5.67 16 5 15.33 5 14.5C5 13.67 5.67 13 6.5 13C7.33 13 8 13.67 8 14.5C8 15.33 7.33 16 6.5 16ZM17.5 16C16.67 16 16 15.33 16 14.5C16 13.67 16.67 13 17.5 13C18.33 13 19 13.67 19 14.5C19 15.33 18.33 16 17.5 16Z" fill="#000000"/>
-                            </svg>
+                        <span className="text-2xl">🎯</span>
+                        <div className="flex flex-col">
+                            <span className="text-lg md:text-xl font-bold text-orange-500">
+                                BABUA BPL
+                            </span>
+                            <span className="text-[10px] text-gray-400 tracking-wider -mt-1 hidden md:block">
+                                PLACEMENT XPRESS
+                            </span>
                         </div>
-                        <span className="text-lg md:text-xl font-bold text-blue-600">
-                            BabuaLMS
-                        </span>
                     </Link>
 
-                    {/* Login Button */}
-                    {isAuthenticated ? (
-                        <Link
-                            to="/dashboard"
-                            className="px-4 md:px-6 py-2 md:py-2.5 bg-white border border-gray-200 text-blue-600 font-semibold rounded-lg md:rounded-full transition-all duration-300 hover:bg-gray-50"
+                    {/* Desktop Navigation */}
+                    <nav className="hidden md:flex items-center gap-8">
+                        {navLinks.map((link) => (
+                            <Link
+                                key={link.name}
+                                to={link.href}
+                                className="text-gray-300 hover:text-orange-400 transition-colors text-sm font-medium"
+                            >
+                                {link.name}
+                            </Link>
+                        ))}
+                    </nav>
+
+                    {/* Auth Buttons */}
+                    <div className="flex items-center gap-3">
+                        {isAuthenticated ? (
+                            <Link
+                                to="/dashboard"
+                                className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-orange-500/30 text-sm"
+                            >
+                                Dashboard
+                            </Link>
+                        ) : (
+                            <>
+                                <Link
+                                    to="/login"
+                                    className="hidden md:block px-5 py-2.5 text-gray-300 hover:text-white transition-colors font-medium text-sm"
+                                >
+                                    Login Wo
+                                </Link>
+                                <Link
+                                    to="/register"
+                                    className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-orange-500/30 text-sm border border-orange-400"
+                                >
+                                    Shuru Karo Guru
+                                </Link>
+                            </>
+                        )}
+
+                        {/* Mobile Menu Button */}
+                        <button
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className="md:hidden p-2 text-gray-300 hover:text-white"
                         >
-                            Dashboard
-                        </Link>
-                    ) : (
-                        <Link
-                            to="/login"
-                            className="px-4 md:px-6 py-2 md:py-2.5 bg-white border border-gray-200 text-blue-600 font-semibold rounded-lg md:rounded-full transition-all duration-300 hover:bg-gray-50"
-                        >
-                            Login
-                        </Link>
-                    )}
+                            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                        </button>
+                    </div>
                 </div>
+
+                {/* Mobile Menu */}
+                {isMenuOpen && (
+                    <div className="md:hidden py-4 border-t border-gray-800">
+                        <nav className="flex flex-col gap-4">
+                            {navLinks.map((link) => (
+                                <Link
+                                    key={link.name}
+                                    to={link.href}
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="text-gray-300 hover:text-orange-400 transition-colors font-medium"
+                                >
+                                    {link.name}
+                                </Link>
+                            ))}
+                            {!isAuthenticated && (
+                                <Link
+                                    to="/login"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="text-gray-300 hover:text-orange-400 transition-colors font-medium"
+                                >
+                                    Login Wo
+                                </Link>
+                            )}
+                        </nav>
+                    </div>
+                )}
             </div>
         </header>
     );

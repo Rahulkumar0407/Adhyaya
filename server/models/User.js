@@ -37,6 +37,34 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    phone: {
+        type: String,
+        trim: true
+    },
+    bio: {
+        type: String,
+        maxlength: 200
+    },
+    location: {
+        type: String,
+        trim: true
+    },
+    college: {
+        type: String,
+        trim: true
+    },
+    course: {
+        type: String,
+        trim: true
+    },
+    graduationYear: {
+        type: Number
+    },
+    socialLinks: {
+        linkedin: { type: String, trim: true },
+        github: { type: String, trim: true },
+        portfolio: { type: String, trim: true }
+    },
 
     // Account Status
     isActive: {
@@ -56,6 +84,20 @@ const userSchema = new mongoose.Schema({
     lastActive: {
         type: Date,
         default: Date.now
+    },
+
+    // XP and Level
+    xpPoints: {
+        type: Number,
+        default: 0
+    },
+    level: {
+        type: Number,
+        default: 1
+    },
+    problemsSolved: {
+        type: Number,
+        default: 0
     },
 
     // Gamification

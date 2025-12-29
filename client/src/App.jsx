@@ -1,5 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
+import { useAuth } from './context/AuthContext';
+import Loader from './components/common/Loader';
 
 // Pages
 import Landing from './pages/Landing';
@@ -17,8 +19,17 @@ import DSALearning from './pages/DSALearning';
 import CourseIndex from './pages/CourseIndex';
 import CourseLayout from './components/course/CourseLayout';
 import Leaderboard from './pages/Leaderboard';
+import PadhaiZone from './pages/PadhaiZone';
+import Settings from './pages/Settings';
 
 function App() {
+    const { loading } = useAuth();
+
+    // Show loader while checking auth
+    if (loading) {
+        return <Loader />;
+    }
+
     return (
         <MainLayout>
             <Routes>
@@ -38,9 +49,12 @@ function App() {
                 <Route path="/course/:courseId" element={<CourseLayout />} />
                 <Route path="/course/:courseId/:topicSlug" element={<CourseLayout />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/padhai-zone" element={<PadhaiZone />} />
+                <Route path="/settings" element={<Settings />} />
             </Routes>
         </MainLayout>
     );
 }
 
 export default App;
+

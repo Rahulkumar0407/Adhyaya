@@ -1,184 +1,133 @@
-import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import gsap from 'gsap';
+import { Columns } from 'lucide-react';
+import ThreeBackground from '../common/ThreeBackground';
 
 export default function HeroSection() {
-    const heroRef = useRef(null);
-    const contentRef = useRef(null);
-    const illustrationRef = useRef(null);
-
-    useEffect(() => {
-        const ctx = gsap.context(() => {
-            // Animate hero content
-            gsap.from('.hero-content > *', {
-                y: 40,
-                opacity: 0,
-                duration: 0.8,
-                stagger: 0.15,
-                ease: 'power3.out',
-            });
-
-            // Animate illustration
-            gsap.from('.hero-illustration', {
-                x: 60,
-                opacity: 0,
-                duration: 1,
-                delay: 0.3,
-                ease: 'power3.out',
-            });
-
-            // Floating animation for rickshaw
-            gsap.to('.rickshaw-float', {
-                y: -12,
-                duration: 2,
-                repeat: -1,
-                yoyo: true,
-                ease: 'sine.inOut',
-            });
-
-            // Floating clouds
-            gsap.to('.cloud-1', {
-                x: 15,
-                duration: 4,
-                repeat: -1,
-                yoyo: true,
-                ease: 'sine.inOut',
-            });
-
-            gsap.to('.cloud-2', {
-                x: -10,
-                duration: 5,
-                repeat: -1,
-                yoyo: true,
-                ease: 'sine.inOut',
-            });
-        }, heroRef);
-
-        return () => ctx.revert();
-    }, []);
-
     return (
         <section
-            ref={heroRef}
-            className="pt-24 md:pt-32 pb-12 md:pb-16"
-            style={{ 
-                background: 'linear-gradient(to bottom, #e0f2fe 0%, #fef3c7 30%, #fed7aa 50%, #bbf7d0 70%, #ffffff 100%)'
+            className="pt-32 md:pt-40 pb-16 md:pb-20 relative overflow-hidden"
+            style={{
+                background: 'linear-gradient(to bottom, #1a1a1a 0%, #2d1f0f 100%)'
             }}
         >
-            <div className="container-babua">
-                {/* Centered Layout */}
-                <div className="flex flex-col items-center">
-                    {/* Illustration Card */}
-                    <div ref={illustrationRef} className="hero-illustration w-full max-w-2xl mb-6 md:mb-8">
-                        {/* Sky background card */}
-                        <div
-                            className="relative rounded-3xl p-6 md:p-8 pt-12 md:pt-16 pb-8 md:pb-12 overflow-hidden bg-gradient-to-b from-sky-200 via-sky-100 to-sky-50"
+            {/* Three.js Background */}
+            <ThreeBackground />
+
+            {/* Decorative gradient orb */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-orange-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-80 h-80 bg-orange-600/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+
+            <div className="container-babua relative z-10">
+                {/* Centered Content */}
+                <div className="text-center max-w-3xl mx-auto">
+                    {/* Main Heading */}
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                        <span className="text-white">Ka Ho Babua?</span>
+                        <br />
+                        <span className="bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-500 bg-clip-text text-transparent">Placement </span>
+                        <span className="text-white">Phodna</span>
+                        <br />
+                        <span className="bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-500 bg-clip-text text-transparent">Hai?</span>
+                    </h1>
+
+                    {/* Subtitle */}
+                    <p className="text-gray-400 text-base md:text-lg mb-8 max-w-xl mx-auto">
+                        Engineering ka dard hum samajhte hain. <span className="text-white font-medium italic">Desi style</span> mein padho, interview crack karo, aur offer letter ghar le jao. Tension lene ka nahi!
+                    </p>
+
+                    {/* CTA Buttons */}
+                    <div className="flex flex-wrap justify-center gap-4 mb-8">
+                        <Link
+                            to="/login"
+                            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-orange-500/30"
                         >
-                            {/* Decorative clouds */}
-                            <div className="cloud-1 absolute top-4 md:top-6 left-4 md:left-6 w-12 md:w-16 h-6 md:h-8 bg-white rounded-full opacity-80">
-                                <div className="absolute -left-1 md:-left-2 top-1 md:top-2 w-6 md:w-8 h-4 md:h-6 bg-white rounded-full"></div>
-                                <div className="absolute -right-1 md:-right-2 top-1 md:top-2 w-8 md:w-10 h-4 md:h-6 bg-white rounded-full"></div>
-                            </div>
+                            Padhai Shuru Karein
+                            <span className="text-lg">✍️</span>
+                        </Link>
+                        <button
+                            className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#2a2a2a] border border-gray-600 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:border-orange-500"
+                        >
+                            Raasta Dekhein
+                            <Columns className="w-5 h-5" />
+                        </button>
+                    </div>
 
-                            <div className="cloud-2 absolute top-8 md:top-12 right-6 md:right-8 w-10 md:w-12 h-5 md:h-6 bg-white rounded-full opacity-70">
-                                <div className="absolute -left-1 md:-left-2 top-0.5 md:top-1 w-5 md:w-6 h-4 md:h-5 bg-white rounded-full"></div>
-                            </div>
-
-                            {/* Speech Bubble with Profile Picture */}
-                            <div className="relative mb-6 md:mb-8">
-                                {/* Profile Picture */}
-                                <div className="absolute -top-6 md:-top-8 left-1/2 -translate-x-1/2 z-10">
-                                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-4 border-white shadow-lg flex items-center justify-center">
-                                        <span className="text-xl md:text-2xl">👓</span>
-                                    </div>
-                                </div>
-                                
-                                {/* Speech Bubble */}
-                                <div className="relative bg-white rounded-2xl px-4 md:px-6 py-3 md:py-4 shadow-lg mx-auto max-w-xs md:max-w-sm mt-4">
-                                    <p className="text-gray-800 font-medium text-center text-sm md:text-base">
-                                        Babua, interview crack karna chahte ho?
-                                    </p>
-                                    {/* Bubble tail */}
-                                    <div className="absolute -bottom-2 md:-bottom-3 left-1/2 -translate-x-1/2 w-4 md:w-6 h-4 md:h-6 bg-white transform rotate-45"></div>
-                                </div>
-                            </div>
-
-                            {/* Auto Rickshaw Illustration */}
-                            <div className="rickshaw-float relative flex justify-center">
-                                <div className="relative w-56 md:w-72 h-40 md:h-48">
-                                    {/* Rickshaw body - Green */}
-                                    <div className="absolute bottom-6 md:bottom-8 left-6 md:left-8 right-6 md:right-8 h-24 md:h-28 bg-gradient-to-b from-emerald-400 to-emerald-500 rounded-t-3xl rounded-b-lg shadow-lg">
-                                        {/* Driver cabin - Yellow */}
-                                        <div className="absolute -left-1 md:-left-2 top-0 w-16 md:w-20 h-full bg-gradient-to-b from-amber-400 to-amber-500 rounded-t-2xl rounded-bl-lg">
-                                            {/* Windshield */}
-                                            <div className="absolute top-1 md:top-2 left-1 md:left-2 right-1 md:right-2 h-10 md:h-12 bg-sky-200 rounded-t-xl border-2 border-amber-600"></div>
-                                            {/* Driver emoji */}
-                                            <div className="absolute top-12 md:top-14 left-1/2 -translate-x-1/2 text-xl md:text-2xl">👨</div>
-                                        </div>
-
-                                        {/* Passenger area */}
-                                        <div className="absolute right-3 md:right-4 top-3 md:top-4 bottom-3 md:bottom-4 left-20 md:left-24 bg-amber-400 rounded-lg overflow-hidden">
-                                            <div className="h-full w-full flex flex-col justify-evenly">
-                                                <div className="h-0.5 md:h-1 bg-amber-500"></div>
-                                                <div className="h-0.5 md:h-1 bg-amber-500"></div>
-                                                <div className="h-0.5 md:h-1 bg-amber-500"></div>
-                                            </div>
-                                        </div>
-
-                                        {/* Canopy */}
-                                        <div className="absolute -top-2 md:-top-3 left-16 md:left-20 right-1 md:right-2 h-3 md:h-4 bg-emerald-600 rounded-t-lg"></div>
-                                    </div>
-
-                                    {/* Wheels */}
-                                    <div className="absolute bottom-1 md:bottom-2 left-8 md:left-10 w-10 md:w-12 h-10 md:h-12 bg-slate-700 rounded-full border-4 border-slate-500 flex items-center justify-center">
-                                        <div className="w-3 md:w-4 h-3 md:h-4 bg-slate-400 rounded-full"></div>
-                                    </div>
-                                    <div className="absolute bottom-1 md:bottom-2 right-10 md:right-12 w-10 md:w-12 h-10 md:h-12 bg-slate-700 rounded-full border-4 border-slate-500 flex items-center justify-center">
-                                        <div className="w-3 md:w-4 h-3 md:h-4 bg-slate-400 rounded-full"></div>
-                                    </div>
-                                    <div className="absolute bottom-1 md:bottom-2 right-3 md:right-4 w-8 md:w-10 h-8 md:h-10 bg-slate-700 rounded-full border-4 border-slate-500 flex items-center justify-center">
-                                        <div className="w-2 md:w-3 h-2 md:h-3 bg-slate-400 rounded-full"></div>
-                                    </div>
-
-                                    {/* Headlight */}
-                                    <div className="absolute bottom-12 md:bottom-14 left-3 md:left-4 w-3 md:w-4 h-3 md:h-4 bg-yellow-300 rounded-full shadow-lg shadow-yellow-300/50"></div>
-                                </div>
-                            </div>
-
-                            {/* Decorative tech icons */}
-                            <div className="absolute bottom-3 md:bottom-4 left-3 md:left-4 text-lg md:text-2xl">💻</div>
-                            <div className="absolute top-16 md:top-20 right-3 md:right-4 text-base md:text-xl">⚡</div>
+                    {/* Trust Badges */}
+                    <div className="flex items-center justify-center gap-8 text-sm mb-12">
+                        <div className="flex items-center gap-2 text-gray-400">
+                            <span className="text-green-500">✓</span>
+                            <span>Ekdum Free Hai</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-400">
+                            <span className="text-orange-500">🔥</span>
+                            <span>50k+ Sawaal</span>
                         </div>
                     </div>
 
-                    {/* Title and Subtitle */}
-                    <div ref={contentRef} className="hero-content text-center mb-6 md:mb-8">
-                        <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-2 md:mb-4 leading-tight">
-                            <span className="text-gray-900">Babua LMS</span>
-                        </h1>
+                    {/* Code Editor Mockup with Hover Rotate */}
+                    <div className="relative max-w-3xl mx-auto group">
+                        {/* Glowing background shadow */}
+                        <div
+                            className="absolute inset-0 -inset-x-8 -inset-y-8 bg-orange-500/20 rounded-[40px] blur-3xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"
+                        ></div>
+                        <div
+                            className="absolute inset-0 -inset-x-4 -inset-y-4 bg-gradient-to-br from-orange-500/30 via-transparent to-yellow-500/20 rounded-[40px] blur-2xl opacity-50"
+                        ></div>
 
-                        <p className="text-lg md:text-xl lg:text-2xl text-blue-600 font-medium">
-                            Desi way to crack tech interviews
-                        </p>
-                    </div>
+                        <div
+                            className="relative bg-[#1a1a1a] rounded-3xl border border-gray-700/50 overflow-hidden transition-transform duration-500 ease-out group-hover:rotate-1 group-hover:scale-[1.02]"
+                            style={{
+                                boxShadow: '0 0 80px rgba(249, 115, 22, 0.3), 0 0 120px rgba(249, 115, 22, 0.15), 0 25px 80px -20px rgba(0, 0, 0, 0.6)'
+                            }}
+                        >
+                            {/* Browser header */}
+                            <div className="flex items-center gap-2 px-4 py-3 bg-[#252525] border-b border-gray-700/50">
+                                <div className="flex gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                </div>
+                                <div className="flex-1 flex justify-center">
+                                    <div className="bg-[#1a1a1a] rounded px-4 py-1 text-xs text-gray-500">
+                                        babua-lms.dev
+                                    </div>
+                                </div>
+                            </div>
 
-                    {/* CTA Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center w-full max-w-md">
-                        <Link 
-                            to="/register" 
-                            className="px-6 md:px-8 py-3 md:py-4 bg-blue-600 text-white font-semibold rounded-lg md:rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg text-center"
-                        >
-                            Start Learning 🚀
-                        </Link>
-                        <Link 
-                            to="/patterns" 
-                            className="px-6 md:px-8 py-3 md:py-4 bg-white border-2 border-gray-300 text-gray-900 font-semibold rounded-lg md:rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg text-center"
-                        >
-                            Explore Courses 🗺️
-                        </Link>
+                            {/* Code Content */}
+                            <div className="p-6 font-mono text-left text-xs md:text-sm bg-[#0d0d0d]">
+                                <div className="space-y-1">
+                                    <div><span className="text-gray-500">1</span>  <span className="text-purple-400">const</span> <span className="text-blue-300">babua</span> = <span className="text-yellow-300">require</span>(<span className="text-green-400">'placement-phodna'</span>);</div>
+                                    <div><span className="text-gray-500">2</span></div>
+                                    <div><span className="text-gray-500">3</span>  <span className="text-purple-400">async function</span> <span className="text-yellow-300">crackInterview</span>() {"{"}</div>
+                                    <div><span className="text-gray-500">4</span>    <span className="text-purple-400">const</span> <span className="text-blue-300">dsa</span> = <span className="text-purple-400">await</span> babua.<span className="text-yellow-300">learnPatterns</span>();</div>
+                                    <div><span className="text-gray-500">5</span>    <span className="text-purple-400">const</span> <span className="text-blue-300">confidence</span> = babua.<span className="text-yellow-300">practice</span>(<span className="text-orange-400">100</span>);</div>
+                                    <div><span className="text-gray-500">6</span>    </div>
+                                    <div><span className="text-gray-500">7</span>    <span className="text-purple-400">return</span> <span className="text-green-400">'🎉 Offer Letter Mil Gaya!'</span>;</div>
+                                    <div><span className="text-gray-500">8</span>  {"}"}</div>
+                                    <div><span className="text-gray-500">9</span></div>
+                                    <div><span className="text-gray-500">10</span> <span className="text-yellow-300">crackInterview</span>(); <span className="text-gray-600">// Ab chalega kaam! 🚀</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Speech Bubble - Top Right */}
+                        <div className="absolute -top-4 -right-4 md:right-4 bg-gradient-to-r from-yellow-400 to-orange-400 text-black px-4 py-2 rounded-2xl text-sm font-bold shadow-lg z-10 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-105">
+                            "Ab Banenge Officer!"
+                            <div className="absolute -bottom-2 left-6 w-4 h-4 bg-yellow-400 rotate-45"></div>
+                        </div>
+
+
+
+                        {/* Person Emoji - Bottom Right */}
+                        <div className="absolute -bottom-6 -right-2 md:right-8 w-20 h-20 bg-gradient-to-br from-orange-400 to-yellow-400 rounded-full flex items-center justify-center shadow-lg z-10 transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110">
+                            <span className="text-4xl">😤</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
     );
 }
+
+

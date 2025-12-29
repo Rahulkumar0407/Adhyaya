@@ -10,6 +10,7 @@ router.use(protect);
 // Profile routes
 router.get('/', profileController.getProfile);
 router.patch('/', profileController.updateProfile);
+router.put('/', profileController.updateProfile);
 
 // LeetCode integration routes
 router.post('/leetcode/link', profileController.linkLeetCode);
