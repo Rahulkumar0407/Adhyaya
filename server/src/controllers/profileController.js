@@ -37,7 +37,8 @@ export const updateProfile = async (req, res) => {
     try {
         const allowedFields = [
             'name', 'bio', 'avatar', 'phone', 'location',
-            'college', 'course', 'graduationYear', 'socialLinks', 'hiringProfile'
+            'college', 'course', 'graduationYear', 'socialLinks', 'hiringProfile',
+            'revisionMode'
         ];
         const updates = {};
 

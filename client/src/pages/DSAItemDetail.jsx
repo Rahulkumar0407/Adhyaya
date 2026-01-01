@@ -10,6 +10,9 @@ import { getPatternBySlug, getItemBySlug, dsaPatterns } from '../data/dsaPattern
 import CtoBhaiyaClipPlayer from '../components/CtoBhaiyaClipPlayer';
 import LockedCodeViewer, { isVideoWatched } from '../components/LockedCodeViewer';
 import { getCtoBhaiyaClip } from '../services/ctoBhaiyaClipsService';
+import UnderstandingModal from '../components/common/UnderstandingModal';
+import api from '../services/api';
+import axios from 'axios';
 
 // Internal Component: Lecture Note Viewer
 function LectureNoteViewer({ url, noteOptions }) {
@@ -142,6 +145,7 @@ export default function DSAItemDetail() {
     const [ctoClip, setCtoClip] = useState(null);
     const [ctoClipLoaded, setCtoClipLoaded] = useState(false);
     const [isSolutionUnlocked, setIsSolutionUnlocked] = useState(false);
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
     const pattern = getPatternBySlug(patternSlug);
     const item = getItemBySlug(patternSlug, itemSlug);
@@ -216,12 +220,50 @@ export default function DSAItemDetail() {
 
         if (isCurrentlyCompleted) {
             completed = completed.filter(id => id !== itemId);
+            localStorage.setItem('dsa-completed-items', JSON.stringify(completed));
+            if (itemId === item.id) setIsCompleted(false);
         } else {
-            completed.push(itemId);
+            // Marking as complete -> trigger modal
+            if (itemId === item.id) {
+                setShowFeedbackModal(true);
+            } else {
+                completed.push(itemId);
+                localStorage.setItem('dsa-completed-items', JSON.stringify(completed));
+            }
         }
+    };
 
-        localStorage.setItem('dsa-completed-items', JSON.stringify(completed));
-        if (itemId === item.id) setIsCompleted(!isCurrentlyCompleted);
+    const handleFeedbackSubmit = async (data) => {
+        try {
+            await api.post('/adaptive-revision/feedback', {
+                course: 'dsa',
+                topicId: item.slug,
+                topicTitle: item.title,
+                understandingLevel: data.understandingLevel,
+                notes: data.notes
+            });
+
+            // After feedback, mark as complete locally
+            const saved = localStorage.getItem('dsa-completed-items');
+            let completed = saved ? JSON.parse(saved) : [];
+            if (!completed.includes(item.id)) {
+                completed.push(item.id);
+                localStorage.setItem('dsa-completed-items', JSON.stringify(completed));
+            }
+            setIsCompleted(true);
+            setShowFeedbackModal(false);
+        } catch (error) {
+            console.error('Failed to submit understanding feedback:', error);
+            // Even if API fails, we marker as complete locally
+            const saved = localStorage.getItem('dsa-completed-items');
+            let completed = saved ? JSON.parse(saved) : [];
+            if (!completed.includes(item.id)) {
+                completed.push(item.id);
+                localStorage.setItem('dsa-completed-items', JSON.stringify(completed));
+            }
+            setIsCompleted(true);
+            setShowFeedbackModal(false);
+        }
     };
 
     const copyCode = (code) => {
@@ -508,6 +550,13 @@ export default function DSAItemDetail() {
                     </div>
                 </div>
             </main>
+
+            <UnderstandingModal
+                isOpen={showFeedbackModal}
+                onClose={() => setShowFeedbackModal(false)}
+                onSubmit={handleFeedbackSubmit}
+                topic={{ title: item.title, topicTitle: item.title }}
+            />
         </div>
     );
 }

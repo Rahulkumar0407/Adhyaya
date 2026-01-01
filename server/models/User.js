@@ -161,6 +161,14 @@ const userSchema = new mongoose.Schema({
         lastPracticed: Date
     }],
 
+    // Revision Preference
+    revisionMode: {
+        type: String,
+        enum: ['adaptive', 'manual', 'unset'],
+        default: 'unset'
+    },
+
+
     // Community
     currentPod: {
         type: mongoose.Schema.Types.ObjectId,

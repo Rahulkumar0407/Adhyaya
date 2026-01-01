@@ -1,5 +1,6 @@
 import { useAuth } from '../../context/AuthContext';
 import { Bell, Zap } from 'lucide-react';
+import UserProfileDropdown from '../common/UserProfileDropdown';
 
 export default function DashboardHeader() {
     const { user } = useAuth();
@@ -38,11 +39,14 @@ export default function DashboardHeader() {
                     <span className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full"></span>
                 </button>
 
-                {/* Challenge Button */}
                 <button className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-orange-500/30 transition-all">
                     <Zap className="w-5 h-5" />
                     Aaj Ka Challenge
                 </button>
+
+                <div className="h-8 w-px bg-gray-700 mx-2"></div>
+
+                <UserProfileDropdown />
             </div>
         </header>
     );

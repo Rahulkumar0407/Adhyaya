@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import CourseHeader from './CourseHeader';
 import CourseSidebar from './CourseSidebar';
 import TopicContent from './TopicContent';
 import BottomNavigation from './BottomNavigation';
+import axios from 'axios';
+import api from '../../services/api';
 import { courses, getTopicBySlug, getAdjacentTopics } from '../../data/courses';
+import UnderstandingModal from '../common/UnderstandingModal';
 
 export default function CourseLayout() {
     const { courseId, topicSlug } = useParams();
     const navigate = useNavigate();
     const [currentTopic, setCurrentTopic] = useState(null);
     const [progress, setProgress] = useState({});
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
     const course = courses[courseId];
 
@@ -24,15 +28,15 @@ export default function CourseLayout() {
         if (!topicSlug) {
             const firstSection = course.sections[0];
             let firstTopic = null;
-            
+
             if (firstSection.subtopics && firstSection.subtopics.length > 0) {
                 firstTopic = firstSection.subtopics[0].topics[0];
             } else if (firstSection.topics && firstSection.topics.length > 0) {
                 firstTopic = firstSection.topics[0];
             }
-            
+
             if (firstTopic) {
-                navigate(`/course/${courseId}/${firstTopic.slug}`, { replace: true });
+                navigate(`/ course / ${courseId}/${firstTopic.slug}`, { replace: true });
                 return;
             }
         }
@@ -70,6 +74,27 @@ export default function CourseLayout() {
         };
         setProgress(newProgress);
         localStorage.setItem(`course-progress-${courseId}`, JSON.stringify(newProgress));
+    };
+
+    const handleFeedbackSubmit = async (data) => {
+        try {
+            await api.post('/adaptive-revision/feedback', {
+                course: courseId,
+                topicId: topicSlug,
+                topicTitle: currentTopic.title,
+                understandingLevel: data.understandingLevel,
+                notes: data.notes
+            });
+
+            // Mark as complete locally
+            handleProgressUpdate(topicSlug, true);
+            setShowFeedbackModal(false);
+        } catch (error) {
+            console.error('Failed to submit understanding feedback:', error);
+            // Mark as complete locally even if API fails
+            handleProgressUpdate(topicSlug, true);
+            setShowFeedbackModal(false);
+        }
     };
 
     if (!course) {
@@ -139,7 +164,15 @@ export default function CourseLayout() {
                             courseId={courseId}
                             topic={currentTopic}
                             progress={progress[topicSlug]}
-                            onProgressUpdate={(isCompleted) => handleProgressUpdate(topicSlug, isCompleted)}
+                            onProgressUpdate={(isCompleted) => {
+                                if (isCompleted && !progress[topicSlug]?.completed) {
+                                    // completing for first time -> show modal
+                                    setShowFeedbackModal(true);
+                                } else {
+                                    // unmarking or already completed -> just toggle
+                                    handleProgressUpdate(topicSlug, isCompleted);
+                                }
+                            }}
                         />
                     </div>
 
@@ -151,6 +184,13 @@ export default function CourseLayout() {
                     />
                 </main>
             </div>
+
+            <UnderstandingModal
+                isOpen={showFeedbackModal}
+                onClose={() => setShowFeedbackModal(false)}
+                onSubmit={handleFeedbackSubmit}
+                topic={currentTopic}
+            />
         </div>
     );
 }

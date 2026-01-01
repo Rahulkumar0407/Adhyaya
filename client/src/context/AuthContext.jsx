@@ -84,13 +84,13 @@ export function AuthProvider({ children }) {
             // Fetch user data immediately
             const response = await api.get('/auth/me');
             setUser(response.data.data);
-            return true;
+            return response.data.data;
         } catch (error) {
             console.error('Failed to fetch user after OAuth:', error);
             // Clear tokens if fetch fails
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
-            return false;
+            return null;
         }
     };
 

@@ -34,6 +34,29 @@ import About from './pages/About';
 import MockInterview from './pages/MockInterview';
 import DSASyllabus from './pages/DSASyllabus';
 import RevisionPage from './pages/RevisionPage';
+import InterviewerSelection from './pages/InterviewerSelection';
+import InterviewerDetail from './pages/InterviewerDetail';
+
+// Mentorship Pages
+import MentorConnect from './pages/MentorConnect';
+import MentorListing from './pages/MentorListing';
+import MentorProfile from './pages/MentorProfile';
+import CallRoom from './pages/CallRoom';
+import BecomeAMentor from './pages/BecomeAMentor';
+
+// Adaptive Revision Pages
+import AdaptiveRevision from './pages/AdaptiveRevision';
+import RevisionQuizPage from './pages/RevisionQuizPage';
+
+// Doubt Solving System
+import AskDoubt from './pages/AskDoubt';
+import DoubtDashboard from './pages/DoubtDashboard';
+import DoubtChatView from './pages/DoubtChatView';
+import StudentAnalytics from './pages/StudentAnalytics';
+import MentorAnalytics from './pages/MentorAnalytics';
+import MentorDashboard from './pages/MentorDashboard';
+import WalletPage from './pages/WalletPage';
+import MentorProfileSettings from './pages/MentorProfileSettings';
 
 function App() {
     const { loading } = useAuth();
@@ -81,10 +104,36 @@ function App() {
                 <Route path="/dsa-shuru-karein" element={<DSAPatterns />} />
                 <Route path="/dsa/:patternSlug/:itemSlug" element={<DSAItemDetail />} />
                 <Route path="/dsa-syllabus" element={<DSASyllabus />} />
+                <Route path="/interviewers/premium" element={<InterviewerSelection />} />
+                <Route path="/interviewer/:id" element={<InterviewerDetail />} />
+
+                {/* Mentorship Routes */}
+                <Route path="/mentors" element={<MentorConnect />} />
+                <Route path="/mentors/list" element={<MentorListing />} />
+                <Route path="/mentors/:id" element={<MentorProfile />} />
+                <Route path="/mentor/:id" element={<MentorProfile />} />
+                <Route path="/call/:callId" element={<CallRoom />} />
+                <Route path="/become-mentor" element={<BecomeAMentor />} />
+
+                {/* Adaptive Revision Routes */}
+                <Route path="/adaptive-revision" element={<AdaptiveRevision />} />
+                <Route path="/revision-quiz/:revisionId" element={<RevisionQuizPage />} />
+
+                {/* Doubt Solving System Routes */}
+                <Route path="/doubts" element={<DoubtDashboard />} />
+                <Route path="/doubts/ask" element={<AskDoubt />} />
+                <Route path="/doubts/:doubtId" element={<DoubtChatView />} />
+                <Route path="/doubts/analytics" element={<StudentAnalytics />} />
+                <Route path="/doubts/mentor-analytics" element={<MentorAnalytics />} />
+                <Route path="/mentor-dashboard" element={<MentorDashboard />} />
+                <Route path="/wallet" element={<WalletPage />} />
+                <Route path="/mentor/profile" element={<MentorProfileSettings />} />
             </Routes>
         </MainLayout>
     );
 }
 
 export default App;
+
+
 

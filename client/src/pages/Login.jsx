@@ -8,12 +8,13 @@ import ThreeBackground from '../components/common/ThreeBackground';
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isMentorLogin, setIsMentorLogin] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const { login } = useAuth();
+    const { login, logout } = useAuth(); // Destructure logout ensuring it's available
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -22,19 +23,43 @@ export default function Login() {
         setLoading(true);
 
         try {
-            await login(email, password);
-            toast.success('Swagat hai babua! 🙏');
-            navigate('/dashboard');
+            const userData = await login(email, password);
+
+            // Role Validation Logic
+            if (isMentorLogin) {
+                if (userData.role !== 'mentor') {
+                    // Start logout process if role mismatch
+                    logout();
+                    throw new Error('This account is not registered as a Mentor.');
+                }
+                toast.success('Welcome back, Mentor! 🎓');
+                navigate('/mentor-dashboard');
+            } else {
+                // Student Login
+                if (userData.role === 'mentor') {
+                    // Optional: Redirect mentors to their dashboard even if they use student login, 
+                    // OR force them to use mentor login. Let's be nice and auto-redirect.
+                    toast.success('Welcome back, Mentor! Redirecting to your portal...');
+                    navigate('/mentor-dashboard');
+                } else {
+                    toast.success('Swagat hai babua! 🙏');
+                    navigate('/dashboard');
+                }
+            }
         } catch (err) {
-            setError(err.response?.data?.message || 'Login fail ho gaya. Phir se try karo.');
+            console.error(err);
+            setError(err.message || err.response?.data?.message || 'Login failed. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
     const handleGoogleLogin = () => {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        window.location.href = `${apiUrl}/api/auth/google`;
+        // Store intended role to handle redirect after callback
+        localStorage.setItem('login_intent_role', isMentorLogin ? 'mentor' : 'student');
+
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        window.location.href = `${apiUrl}/auth/google`;
     };
 
     return (
@@ -181,6 +206,27 @@ export default function Login() {
                                 {/* Divider */}
                                 <div className="text-center text-gray-500 text-xs mb-4">Ya fir email se</div>
 
+                                {/* Role Toggle */}
+                                <div className="flex p-1 bg-[#1a1a1a] border border-gray-800 rounded-xl mb-6 relative">
+                                    <div
+                                        className={`absolute inset-y-1 w-[calc(50%-4px)] bg-gray-800 rounded-lg transition-all duration-300 ease-out ${isMentorLogin ? 'left-[calc(50%+2px)]' : 'left-1'}`}
+                                    ></div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsMentorLogin(false)}
+                                        className={`relative flex-1 py-2 text-sm font-medium transition-colors z-10 ${!isMentorLogin ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                    >
+                                        Student
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsMentorLogin(true)}
+                                        className={`relative flex-1 py-2 text-sm font-medium transition-colors z-10 ${isMentorLogin ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                    >
+                                        Mentor
+                                    </button>
+                                </div>
+
                                 {/* Login Form */}
                                 <form onSubmit={handleSubmit} className="space-y-4">
                                     {error && (
@@ -193,7 +239,7 @@ export default function Login() {
                                     {/* Email Field */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                                            Email ID ya Username
+                                            {isMentorLogin ? 'Mentor Email' : 'Email ID ya Username'}
                                         </label>
                                         <div className="relative">
                                             <input
@@ -201,7 +247,7 @@ export default function Login() {
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 className="w-full px-4 py-2.5 bg-[#1a1a1a] border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
-                                                placeholder="babua@example.com"
+                                                placeholder={isMentorLogin ? "mentor@example.com" : "babua@example.com"}
                                                 required
                                             />
                                             <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -211,7 +257,7 @@ export default function Login() {
                                     {/* Password Field */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                                            Password (Gupt Baat)
+                                            Password {isMentorLogin ? '' : '(Gupt Baat)'}
                                         </label>
                                         <div className="relative">
                                             <input
@@ -241,7 +287,9 @@ export default function Login() {
                                                 onChange={(e) => setRememberMe(e.target.checked)}
                                                 className="w-4 h-4 rounded border-gray-600 bg-[#1a1a1a] text-orange-500 focus:ring-orange-500"
                                             />
-                                            <span className="text-xs text-gray-400">Yaad rakha humke</span>
+                                            <span className="text-xs text-gray-400">
+                                                {isMentorLogin ? 'Remember me' : 'Yaad rakha humke'}
+                                            </span>
                                         </label>
                                         <Link to="/forgot-password" className="text-xs text-orange-500 hover:underline">
                                             Forgot Password
@@ -252,12 +300,14 @@ export default function Login() {
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-orange-500/30 transition-all disabled:opacity-50"
+                                        className={`w-full flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 ${isMentorLogin
+                                            ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:shadow-violet-500/30'
+                                            : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:shadow-orange-500/30'}`}
                                     >
                                         {loading ? (
                                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                         ) : (
-                                            'Login Mara'
+                                            isMentorLogin ? 'Login to Mentor Portal' : 'Login Mara'
                                         )}
                                     </button>
                                 </form>

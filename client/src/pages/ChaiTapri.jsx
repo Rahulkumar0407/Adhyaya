@@ -5,8 +5,163 @@ import { io } from 'socket.io-client';
 import {
     Hash, Search, Pin, Info, Send, Paperclip, Settings,
     MessageSquare, Megaphone, Code, Server, Database, Briefcase,
-    Coffee, Users, ArrowLeft
+    Coffee, Users, ArrowLeft, Crown, Flame, Clock, CheckCircle,
+    TrendingUp, Star, Sparkles, UserCheck, Calendar
 } from 'lucide-react';
+
+// Mentor Circle Section Component
+const MentorCircleSection = () => {
+    const mentorshipFeatures = [
+        { icon: Users, text: '25 students = 1 mentor', desc: 'Small groups for personal attention' },
+        { icon: MessageSquare, text: 'Daily doubt-solving & guidance', desc: 'Get help when you need it' },
+        { icon: Calendar, text: '1-month mentorship cycle', desc: 'Fresh start every month' },
+        { icon: Coffee, text: 'Private Chai Tapri mentor group', desc: 'Exclusive community access' },
+        { icon: CheckCircle, text: 'Focus on consistency & completion', desc: 'Build lasting habits' },
+    ];
+
+    const performanceCriteria = [
+        { icon: Flame, label: 'Highest learning streak', color: 'from-orange-500 to-red-500' },
+        { icon: Clock, label: 'Maximum focused study time', color: 'from-blue-500 to-cyan-500' },
+        { icon: CheckCircle, label: 'Maximum course completion', color: 'from-green-500 to-emerald-500' },
+        { icon: TrendingUp, label: 'Overall platform activity', color: 'from-purple-500 to-pink-500' },
+    ];
+
+    return (
+        <div className="bg-gradient-to-b from-[#1a1410] via-[#1e1814] to-[#1a1410] border-t border-amber-900/30 py-16 px-6">
+            <div className="max-w-5xl mx-auto">
+                {/* Section Header */}
+                <div className="text-center mb-12">
+                    <div className="inline-flex items-center gap-2 bg-amber-900/30 border border-amber-700/30 rounded-full px-4 py-2 mb-4">
+                        <Coffee className="w-4 h-4 text-amber-400" />
+                        <span className="text-amber-400 text-sm font-medium">Premium Feature</span>
+                    </div>
+                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+                        ☕ Chai Tapri – <span className="text-amber-400">Mentor Circle</span>
+                    </h2>
+                    <p className="text-amber-100/60 text-lg max-w-xl mx-auto">
+                        Study together. Learn faster. Stay consistent.
+                    </p>
+                </div>
+
+                {/* Main Content Grid */}
+                <div className="grid lg:grid-cols-2 gap-8 mb-12">
+                    {/* Left: Mentorship Model */}
+                    <div className="bg-gradient-to-br from-amber-900/20 to-amber-950/30 border border-amber-800/30 rounded-2xl p-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
+                                <UserCheck className="w-5 h-5 text-white" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white">How It Works</h3>
+                        </div>
+                        <div className="space-y-4">
+                            {mentorshipFeatures.map((feature, index) => {
+                                const Icon = feature.icon;
+                                return (
+                                    <div key={index} className="flex items-start gap-4 group">
+                                        <div className="w-8 h-8 bg-amber-900/40 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-amber-800/50 transition-colors">
+                                            <Icon className="w-4 h-4 text-amber-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-medium">{feature.text}</p>
+                                            <p className="text-amber-100/50 text-sm">{feature.desc}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Right: Pricing Card */}
+                    <div className="bg-gradient-to-br from-amber-900/20 to-amber-950/30 border border-amber-800/30 rounded-2xl p-6 flex flex-col">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
+                                <Star className="w-5 h-5 text-white" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white">Simple Pricing</h3>
+                        </div>
+
+                        {/* Price Display */}
+                        <div className="bg-amber-950/50 border border-amber-800/20 rounded-xl p-6 text-center mb-6">
+                            <div className="flex items-baseline justify-center gap-1 mb-2">
+                                <span className="text-amber-400 text-2xl">₹</span>
+                                <span className="text-5xl font-bold text-white">60</span>
+                                <span className="text-amber-100/60 text-lg">/ month</span>
+                            </div>
+                            <p className="text-amber-100/50 text-sm">Less than a cutting chai per day ☕</p>
+                        </div>
+
+                        {/* Benefits */}
+                        <div className="space-y-3 flex-1">
+                            <div className="flex items-center gap-3 text-amber-100/70">
+                                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                <span>No long-term commitment</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-amber-100/70">
+                                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                <span>Cancel anytime, no questions</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-amber-100/70">
+                                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                <span>New batch starts every month</span>
+                            </div>
+                        </div>
+
+                        {/* CTA Button */}
+                        <button className="w-full mt-6 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold py-4 px-6 rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+                            <Coffee className="w-5 h-5" />
+                            Join Mentor Circle
+                        </button>
+                        <p className="text-center text-amber-100/40 text-xs mt-3">
+                            Limited seats · New batch every month
+                        </p>
+                    </div>
+                </div>
+
+                {/* Performance-Based Entry Section */}
+                <div className="bg-gradient-to-r from-amber-900/10 via-amber-800/20 to-amber-900/10 border border-amber-800/20 rounded-2xl p-6 md:p-8">
+                    <div className="text-center mb-8">
+                        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full px-4 py-2 mb-4">
+                            <Sparkles className="w-4 h-4 text-yellow-400" />
+                            <span className="text-yellow-400 text-sm font-medium">Free Entry Possible!</span>
+                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-2">
+                            Earn Your Spot – <span className="text-amber-400">Merit-Based Selection</span>
+                        </h3>
+                        <p className="text-amber-100/60 max-w-2xl mx-auto">
+                            Every month, <span className="text-amber-400 font-medium">1 student gets FREE access</span> to the Mentor Circle based on their performance. Keep grinding, and you might be next!
+                        </p>
+                    </div>
+
+                    {/* Criteria Grid */}
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {performanceCriteria.map((criteria, index) => {
+                            const Icon = criteria.icon;
+                            return (
+                                <div key={index} className="bg-amber-950/40 border border-amber-800/20 rounded-xl p-4 text-center hover:bg-amber-900/30 transition-colors group">
+                                    <div className={`w-12 h-12 bg-gradient-to-br ${criteria.color} rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform`}>
+                                        <Icon className="w-6 h-6 text-white" />
+                                    </div>
+                                    <p className="text-white font-medium text-sm">{criteria.label}</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <p className="text-center text-amber-100/40 text-sm mt-6">
+                        🎯 Stay consistent, complete courses, and be active – you could be the next free member!
+                    </p>
+                </div>
+
+                {/* Bottom Note */}
+                <div className="text-center mt-10">
+                    <p className="text-amber-100/40 text-sm italic">
+                        "A small paid chai with a senior who guides you every day."
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
@@ -63,6 +218,7 @@ export default function ChaiTapri() {
     const [onlineCount, setOnlineCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [socket, setSocket] = useState(null);
+    const [showMentorCircle, setShowMentorCircle] = useState(false);
     const messagesEndRef = useRef(null);
 
     const userName = user?.name || 'Guest';
@@ -246,6 +402,24 @@ export default function ChaiTapri() {
                             );
                         })}
                     </div>
+
+                    {/* Mentor Circle Link in Sidebar */}
+                    <div className="mt-6 pt-4 border-t border-amber-900/30">
+                        <div className="text-xs font-bold text-amber-600/50 uppercase tracking-wider px-2 mb-2">
+                            Premium
+                        </div>
+                        <button
+                            onClick={() => setShowMentorCircle(!showMentorCircle)}
+                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all group ${showMentorCircle
+                                ? 'bg-yellow-500/20 text-yellow-400 border-l-2 border-yellow-500'
+                                : 'text-amber-100/60 hover:bg-amber-900/20 hover:text-amber-100'
+                                }`}
+                        >
+                            <Crown className="w-4 h-4 text-yellow-500" />
+                            <span className="text-sm font-medium">Mentor Circle</span>
+                            <Sparkles className={`w-3 h-3 ml-auto ${showMentorCircle ? 'text-yellow-400' : 'text-yellow-500/50 group-hover:text-yellow-400'}`} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* User Profile */}
@@ -265,143 +439,172 @@ export default function ChaiTapri() {
                 </div>
             </div>
 
-            {/* Main Chat Area */}
+            {/* Main Content Area - Chat or Mentor Circle */}
             <div className="flex-1 flex flex-col">
-                {/* Channel Header */}
-                <div className="bg-[#1e1814]/80 backdrop-blur border-b border-amber-900/30 px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Hash className="w-5 h-5 text-amber-400" />
-                        <div>
-                            <div className="font-bold text-white">{channelInfo.name}</div>
-                            <div className="text-amber-100/40 text-sm">{channelDescriptions[activeChannel]}</div>
+                {showMentorCircle ? (
+                    /* Mentor Circle View */
+                    <div className="flex-1 overflow-y-auto">
+                        {/* Mentor Circle Header */}
+                        <div className="bg-[#1e1814]/80 backdrop-blur border-b border-amber-900/30 px-6 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Crown className="w-5 h-5 text-yellow-400" />
+                                <div>
+                                    <div className="font-bold text-white">Mentor Circle</div>
+                                    <div className="text-amber-100/40 text-sm">Premium mentorship program</div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowMentorCircle(false)}
+                                className="flex items-center gap-2 px-4 py-2 bg-amber-900/30 hover:bg-amber-900/50 text-amber-100 rounded-lg transition-colors"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                <span className="text-sm">Back to Chat</span>
+                            </button>
                         </div>
+
+                        {/* Mentor Circle Content */}
+                        <MentorCircleSection />
                     </div>
+                ) : (
+                    /* Chat View */
+                    <>
+                        {/* Channel Header */}
+                        <div className="bg-[#1e1814]/80 backdrop-blur border-b border-amber-900/30 px-6 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Hash className="w-5 h-5 text-amber-400" />
+                                <div>
+                                    <div className="font-bold text-white">{channelInfo.name}</div>
+                                    <div className="text-amber-100/40 text-sm">{channelDescriptions[activeChannel]}</div>
+                                </div>
+                            </div>
 
-                    <div className="flex items-center gap-3">
-                        {/* Search */}
-                        <div className="relative">
-                            <Search className="w-4 h-4 text-amber-600/50 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search in channel..."
-                                className="bg-amber-900/30 border border-amber-800/30 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-amber-600/40 focus:outline-none focus:ring-1 focus:ring-amber-500/50 w-48"
-                            />
-                        </div>
-                        <button className="text-amber-600/50 hover:text-amber-400 transition-colors p-2">
-                            <Pin className="w-5 h-5" />
-                        </button>
-                        <button className="text-amber-600/50 hover:text-amber-400 transition-colors p-2">
-                            <Info className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto px-6 py-4">
-                    {/* Online Users Banner */}
-                    <div className="flex items-center justify-center gap-2 mb-6">
-                        <span className="text-amber-600/50 text-sm flex items-center gap-1">
-                            <Users className="w-3 h-3" />
-                            <span className="w-2 h-2 bg-lime-400 rounded-full animate-pulse"></span>
-                            {onlineCount || 1} member{onlineCount !== 1 ? 's' : ''} online
-                        </span>
-                    </div>
-
-                    {/* Date Separator */}
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-800/30 to-transparent"></div>
-                        <span className="text-amber-600/50 text-xs font-medium px-3 py-1 bg-amber-900/30 rounded-full">Today</span>
-                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-800/30 to-transparent"></div>
-                    </div>
-
-                    {/* Loading State */}
-                    {loading ? (
-                        <div className="flex items-center justify-center py-10">
-                            <div className="animate-spin w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full"></div>
-                        </div>
-                    ) : messages.length === 0 ? (
-                        <div className="text-center py-10">
-                            <div className="text-4xl mb-3">☕</div>
-                            <p className="text-amber-600/60">No messages yet. Be the first to say hi!</p>
-                        </div>
-                    ) : (
-                        /* Messages */
-                        <div className="space-y-4">
-                            {messages.map((msg) => {
-                                const msgUserName = msg.user?.name || 'Anonymous';
-                                const msgInitials = msgUserName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-
-                                return (
-                                    <div key={msg._id} className="flex gap-4 group hover:bg-amber-900/10 p-3 -mx-3 rounded-xl transition-colors">
-                                        {/* Avatar */}
-                                        <div className={`w-10 h-10 bg-gradient-to-br ${getAvatarColor(msgUserName)} rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-                                            {msgInitials}
-                                        </div>
-
-                                        {/* Content */}
-                                        <div className="flex-1 min-w-0">
-                                            {/* Header */}
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-bold text-white">{msgUserName}</span>
-                                                <span className="text-amber-600/40 text-xs">{formatTime(msg.createdAt)}</span>
-                                            </div>
-
-                                            {/* Message Content */}
-                                            <p className="text-amber-100/80 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-
-                                            {/* Code Block */}
-                                            {msg.code && msg.code.content && (
-                                                <div className="mt-3 bg-[#0d0a08] rounded-xl border border-amber-900/30 overflow-hidden">
-                                                    <div className="flex items-center justify-between px-4 py-2 border-b border-amber-900/30 bg-amber-900/10">
-                                                        <span className="text-amber-500 text-xs font-medium">{msg.code.language || 'code'}</span>
-                                                    </div>
-                                                    <pre className="p-4 text-sm overflow-x-auto">
-                                                        <code className="text-amber-100/70 font-mono">{msg.code.content}</code>
-                                                    </pre>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                </div>
-
-                {/* Message Input */}
-                <div className="bg-[#1e1814]/80 backdrop-blur border-t border-amber-900/30 px-6 py-4">
-                    <div className="max-w-4xl mx-auto">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder={token ? "Ask a question or help someone..." : "Login to send messages"}
-                                disabled={!token}
-                                className="w-full bg-amber-900/20 border border-amber-800/30 rounded-xl pl-4 pr-24 py-4 text-white placeholder-amber-600/40 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-600/50 transition-all disabled:opacity-50"
-                            />
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                <button className="text-amber-600/50 hover:text-amber-400 p-2 transition-colors">
-                                    <Paperclip className="w-5 h-5" />
+                            <div className="flex items-center gap-3">
+                                {/* Search */}
+                                <div className="relative">
+                                    <Search className="w-4 h-4 text-amber-600/50 absolute left-3 top-1/2 -translate-y-1/2" />
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder="Search in channel..."
+                                        className="bg-amber-900/30 border border-amber-800/30 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-amber-600/40 focus:outline-none focus:ring-1 focus:ring-amber-500/50 w-48"
+                                    />
+                                </div>
+                                <button className="text-amber-600/50 hover:text-amber-400 transition-colors p-2">
+                                    <Pin className="w-5 h-5" />
                                 </button>
-                                <button
-                                    onClick={sendMessage}
-                                    disabled={!token || !message.trim()}
-                                    className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white p-2.5 rounded-lg transition-all hover:scale-105 shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:hover:scale-100"
-                                >
-                                    <Send className="w-4 h-4" />
+                                <button className="text-amber-600/50 hover:text-amber-400 transition-colors p-2">
+                                    <Info className="w-5 h-5" />
                                 </button>
                             </div>
                         </div>
-                        <div className="text-amber-600/40 text-xs mt-2 px-1">
-                            <span className="text-amber-500">Enter</span> to send. <span className="text-amber-500">Shift + Enter</span> for new line. Markdown supported.
+
+                        {/* Messages Area */}
+                        <div className="flex-1 overflow-y-auto px-6 py-4">
+                            {/* Online Users Banner */}
+                            <div className="flex items-center justify-center gap-2 mb-6">
+                                <span className="text-amber-600/50 text-sm flex items-center gap-1">
+                                    <Users className="w-3 h-3" />
+                                    <span className="w-2 h-2 bg-lime-400 rounded-full animate-pulse"></span>
+                                    {onlineCount || 1} member{onlineCount !== 1 ? 's' : ''} online
+                                </span>
+                            </div>
+
+                            {/* Date Separator */}
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-800/30 to-transparent"></div>
+                                <span className="text-amber-600/50 text-xs font-medium px-3 py-1 bg-amber-900/30 rounded-full">Today</span>
+                                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-800/30 to-transparent"></div>
+                            </div>
+
+                            {/* Loading State */}
+                            {loading ? (
+                                <div className="flex items-center justify-center py-10">
+                                    <div className="animate-spin w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full"></div>
+                                </div>
+                            ) : messages.length === 0 ? (
+                                <div className="text-center py-10">
+                                    <div className="text-4xl mb-3">☕</div>
+                                    <p className="text-amber-600/60">No messages yet. Be the first to say hi!</p>
+                                </div>
+                            ) : (
+                                /* Messages */
+                                <div className="space-y-4">
+                                    {messages.map((msg) => {
+                                        const msgUserName = msg.user?.name || 'Anonymous';
+                                        const msgInitials = msgUserName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+                                        return (
+                                            <div key={msg._id} className="flex gap-4 group hover:bg-amber-900/10 p-3 -mx-3 rounded-xl transition-colors">
+                                                {/* Avatar */}
+                                                <div className={`w-10 h-10 bg-gradient-to-br ${getAvatarColor(msgUserName)} rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+                                                    {msgInitials}
+                                                </div>
+
+                                                {/* Content */}
+                                                <div className="flex-1 min-w-0">
+                                                    {/* Header */}
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="font-bold text-white">{msgUserName}</span>
+                                                        <span className="text-amber-600/40 text-xs">{formatTime(msg.createdAt)}</span>
+                                                    </div>
+
+                                                    {/* Message Content */}
+                                                    <p className="text-amber-100/80 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+
+                                                    {/* Code Block */}
+                                                    {msg.code && msg.code.content && (
+                                                        <div className="mt-3 bg-[#0d0a08] rounded-xl border border-amber-900/30 overflow-hidden">
+                                                            <div className="flex items-center justify-between px-4 py-2 border-b border-amber-900/30 bg-amber-900/10">
+                                                                <span className="text-amber-500 text-xs font-medium">{msg.code.language || 'code'}</span>
+                                                            </div>
+                                                            <pre className="p-4 text-sm overflow-x-auto">
+                                                                <code className="text-amber-100/70 font-mono">{msg.code.content}</code>
+                                                            </pre>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            <div ref={messagesEndRef} />
                         </div>
-                    </div>
-                </div>
+
+                        {/* Message Input */}
+                        <div className="bg-[#1e1814]/80 backdrop-blur border-t border-amber-900/30 px-6 py-4">
+                            <div className="max-w-4xl mx-auto">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={message}
+                                        onChange={(e) => setMessage(e.target.value)}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder={token ? "Ask a question or help someone..." : "Login to send messages"}
+                                        disabled={!token}
+                                        className="w-full bg-amber-900/20 border border-amber-800/30 rounded-xl pl-4 pr-24 py-4 text-white placeholder-amber-600/40 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-600/50 transition-all disabled:opacity-50"
+                                    />
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                        <button className="text-amber-600/50 hover:text-amber-400 p-2 transition-colors">
+                                            <Paperclip className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={sendMessage}
+                                            disabled={!token || !message.trim()}
+                                            className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white p-2.5 rounded-lg transition-all hover:scale-105 shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:hover:scale-100"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="text-amber-600/40 text-xs mt-2 px-1">
+                                    <span className="text-amber-500">Enter</span> to send. <span className="text-amber-500">Shift + Enter</span> for new line. Markdown supported.
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* Back to Dashboard Button */}

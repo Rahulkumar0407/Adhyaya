@@ -11,6 +11,9 @@ import {
     getPreviousLesson, getTotalLessons, getLessonNumber, levelColors
 } from '../data/systemDesignCourse';
 import { recordActivity } from '../services/activityService';
+import UnderstandingModal from '../components/common/UnderstandingModal';
+import api from '../services/api';
+import axios from 'axios';
 
 export default function SystemDesignCourse() {
     const { user, token } = useAuth();
@@ -32,6 +35,8 @@ export default function SystemDesignCourse() {
         const saved = localStorage.getItem('userPoints');
         return saved ? parseInt(saved) : 500; // Default 500 points for testing
     });
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [selectedLessonForFeedback, setSelectedLessonForFeedback] = useState(null);
 
     // Refs for GSAP animations
     const heroRef = useRef(null);
@@ -172,11 +177,18 @@ export default function SystemDesignCourse() {
     const toggleComplete = async (lessonIdToToggle) => {
         const wasCompleted = completedLessons.includes(lessonIdToToggle);
 
-        setCompletedLessons((prev) =>
-            prev.includes(lessonIdToToggle)
-                ? prev.filter((id) => id !== lessonIdToToggle)
-                : [...prev, lessonIdToToggle]
-        );
+        if (wasCompleted) {
+            setCompletedLessons((prev) => prev.filter((id) => id !== lessonIdToToggle));
+        } else {
+            // Trigger feedback modal for current lesson if not already completed
+            if (lessonIdToToggle === lessonId) {
+                const lessonToFeedback = getLessonById(lessonIdToToggle);
+                setSelectedLessonForFeedback(lessonToFeedback);
+                setShowFeedbackModal(true);
+            } else {
+                setCompletedLessons((prev) => [...prev, lessonIdToToggle]);
+            }
+        }
 
         // Record activity only when marking as complete (not when uncompleting)
         if (!wasCompleted && token) {
@@ -188,6 +200,31 @@ export default function SystemDesignCourse() {
             } catch (error) {
                 console.error('Failed to record activity:', error);
             }
+        }
+    };
+
+    const handleFeedbackSubmit = async (data) => {
+        try {
+            await api.post('/adaptive-revision/feedback', {
+                course: 'system-design',
+                topicId: lessonId,
+                topicTitle: currentLesson.title,
+                understandingLevel: data.understandingLevel,
+                notes: data.notes
+            });
+
+            // Mark as complete locally
+            if (!completedLessons.includes(lessonId)) {
+                setCompletedLessons((prev) => [...prev, lessonId]);
+            }
+            setShowFeedbackModal(false);
+        } catch (error) {
+            console.error('Failed to submit understanding feedback:', error);
+            // Mark as complete even if API fails
+            if (!completedLessons.includes(lessonId)) {
+                setCompletedLessons((prev) => [...prev, lessonId]);
+            }
+            setShowFeedbackModal(false);
         }
     };
 
@@ -722,6 +759,13 @@ export default function SystemDesignCourse() {
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
+
+            <UnderstandingModal
+                isOpen={showFeedbackModal}
+                onClose={() => setShowFeedbackModal(false)}
+                onSubmit={handleFeedbackSubmit}
+                topic={selectedLessonForFeedback}
+            />
         </div>
     );
 }

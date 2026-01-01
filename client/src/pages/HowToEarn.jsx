@@ -4,11 +4,11 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import {
     Home, Bell, Gift, BookOpen, Crown, Rocket, Mic,
-    Linkedin, Github, Globe, Flame, GraduationCap, ArrowRight, Sparkles, Star, Coins, Trophy, ChevronRight, RotateCcw
+    Linkedin, Github, Globe, Flame, GraduationCap, ArrowRight, Sparkles, Star, Coins, Trophy, ChevronRight, RotateCcw, MessageCircle
 } from 'lucide-react';
 
-// Floating Coins Background
-function CoinsBackground() {
+// Rewards-themed 3D Background
+function RewardsBackground() {
     const containerRef = useRef(null);
 
     useEffect(() => {
@@ -23,42 +23,130 @@ function CoinsBackground() {
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         containerRef.current.appendChild(renderer.domElement);
 
-        // Create floating coins (torus shapes) - spread to the sides
-        const coins = [];
-        const coinGeometry = new THREE.TorusGeometry(0.8, 0.2, 8, 24);
+        const rewards = [];
 
-        for (let i = 0; i < 25; i++) {
-            const material = new THREE.MeshBasicMaterial({
-                color: i % 3 === 0 ? 0xfbbf24 : (i % 3 === 1 ? 0xa855f7 : 0x8b5cf6),
+        // 1. Floating Trophies (gold cylinders with sphere top)
+        for (let i = 0; i < 8; i++) {
+            const group = new THREE.Group();
+
+            // Trophy base
+            const baseGeometry = new THREE.CylinderGeometry(0.4, 0.6, 0.8, 12);
+            const baseMaterial = new THREE.MeshBasicMaterial({
+                color: 0xfbbf24,
                 wireframe: true,
                 transparent: true,
-                opacity: 0.2 + Math.random() * 0.15,
+                opacity: 0.25,
+            });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            group.add(base);
+
+            // Trophy cup
+            const cupGeometry = new THREE.SphereGeometry(0.5, 12, 12);
+            const cup = new THREE.Mesh(cupGeometry, baseMaterial);
+            cup.position.y = 0.6;
+            cup.scale.y = 0.8;
+            group.add(cup);
+
+            const side = i % 2 === 0 ? -1 : 1;
+            group.position.x = side * (22 + Math.random() * 23);
+            group.position.y = (Math.random() - 0.5) * 50;
+            group.position.z = (Math.random() - 0.5) * 20 - 10;
+
+            const scale = Math.random() * 1.2 + 0.8;
+            group.scale.set(scale, scale, scale);
+
+            group.userData = {
+                rotationSpeed: Math.random() * 0.01 + 0.005,
+                floatSpeed: Math.random() * 0.3 + 0.2,
+                floatOffset: Math.random() * Math.PI * 2,
+            };
+
+            rewards.push(group);
+            scene.add(group);
+        }
+
+        // 2. Spinning Coins (torus shapes)
+        const coinGeometry = new THREE.TorusGeometry(0.8, 0.15, 8, 24);
+        const coinColors = [0xf97316, 0xfbbf24, 0xf59e0b];
+
+        for (let i = 0; i < 18; i++) {
+            const material = new THREE.MeshBasicMaterial({
+                color: coinColors[i % coinColors.length],
+                wireframe: true,
+                transparent: true,
+                opacity: 0.2 + Math.random() * 0.1,
             });
 
             const coin = new THREE.Mesh(coinGeometry, material);
             const side = i % 2 === 0 ? -1 : 1;
-            // Spread more to the sides - increased x range
-            coin.position.x = side * (25 + Math.random() * 20);
+            coin.position.x = side * (24 + Math.random() * 21);
             coin.position.y = (Math.random() - 0.5) * 50;
             coin.position.z = (Math.random() - 0.5) * 20 - 10;
 
-            const scale = Math.random() * 1.8 + 0.6;
+            const scale = Math.random() * 1.5 + 0.6;
             coin.scale.set(scale, scale, scale);
 
             coin.userData = {
-                rotationSpeed: Math.random() * 0.03 + 0.01,
+                rotationSpeed: Math.random() * 0.04 + 0.02,
                 floatSpeed: Math.random() * 0.5 + 0.3,
                 floatOffset: Math.random() * Math.PI * 2,
             };
 
-            coins.push(coin);
+            rewards.push(coin);
             scene.add(coin);
         }
 
-        // Star particles - also spread more to sides
+        // 3. Gift Boxes (cubes with ribbon)
+        const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const ribbonGeometry = new THREE.BoxGeometry(1.1, 0.15, 0.15);
+
+        for (let i = 0; i < 6; i++) {
+            const group = new THREE.Group();
+
+            // Box
+            const boxMaterial = new THREE.MeshBasicMaterial({
+                color: 0xf97316,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.2,
+            });
+            const box = new THREE.Mesh(boxGeometry, boxMaterial);
+            group.add(box);
+
+            // Ribbon (2 crossing bars)
+            const ribbonMaterial = new THREE.MeshBasicMaterial({
+                color: 0xfbbf24,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.25,
+            });
+            const ribbon1 = new THREE.Mesh(ribbonGeometry, ribbonMaterial);
+            const ribbon2 = new THREE.Mesh(ribbonGeometry, ribbonMaterial);
+            ribbon2.rotation.z = Math.PI / 2;
+            group.add(ribbon1, ribbon2);
+
+            const side = i % 2 === 0 ? -1 : 1;
+            group.position.x = side * (26 + Math.random() * 19);
+            group.position.y = (Math.random() - 0.5) * 50;
+            group.position.z = (Math.random() - 0.5) * 20 - 10;
+
+            const scale = Math.random() * 1.3 + 0.7;
+            group.scale.set(scale, scale, scale);
+
+            group.userData = {
+                rotationSpeed: (Math.random() - 0.5) * 0.015,
+                floatSpeed: Math.random() * 0.4 + 0.25,
+                floatOffset: Math.random() * Math.PI * 2,
+            };
+
+            rewards.push(group);
+            scene.add(group);
+        }
+
+        // 4. Star Sparkles
         const starGeometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(100 * 3);
-        for (let i = 0; i < 100 * 3; i += 3) {
+        const positions = new Float32Array(120 * 3);
+        for (let i = 0; i < 120 * 3; i += 3) {
             const side = (i / 3) % 2 === 0 ? -1 : 1;
             positions[i] = side * (20 + Math.random() * 25);
             positions[i + 1] = (Math.random() - 0.5) * 60;
@@ -68,9 +156,9 @@ function CoinsBackground() {
 
         const starMaterial = new THREE.PointsMaterial({
             color: 0xfbbf24,
-            size: 0.08,
+            size: 0.1,
             transparent: true,
-            opacity: 0.6,
+            opacity: 0.7,
         });
 
         const stars = new THREE.Points(starGeometry, starMaterial);
@@ -83,13 +171,15 @@ function CoinsBackground() {
             animationId = requestAnimationFrame(animate);
             const elapsedTime = clock.getElapsedTime();
 
-            coins.forEach((coin) => {
-                coin.rotation.x += coin.userData.rotationSpeed;
-                coin.rotation.y += coin.userData.rotationSpeed * 0.5;
-                coin.position.y += Math.sin(elapsedTime * coin.userData.floatSpeed + coin.userData.floatOffset) * 0.015;
+            rewards.forEach((reward) => {
+                if (reward.userData.rotationSpeed !== undefined) {
+                    reward.rotation.x += reward.userData.rotationSpeed;
+                    reward.rotation.y += reward.userData.rotationSpeed * 0.7;
+                }
+                reward.position.y += Math.sin(elapsedTime * reward.userData.floatSpeed + reward.userData.floatOffset) * 0.012;
             });
 
-            stars.rotation.y = elapsedTime * 0.01;
+            stars.rotation.y = elapsedTime * 0.015;
             renderer.render(scene, camera);
         };
         animate();
@@ -114,13 +204,8 @@ function CoinsBackground() {
     return <div ref={containerRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} />;
 }
 
-// Nav items
-const navItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Mock Interview', href: '/mock-interview', icon: Mic },
-    { name: 'Revision', href: '/revision', icon: RotateCcw },
-    { name: 'Rewards', href: '/how-to-earn', icon: Gift, active: true },
-];
+
+
 
 const earnSteps = [
     {
@@ -217,70 +302,21 @@ export default function HowToEarn() {
         : 100;
 
     return (
-        <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a0a2e 0%, #16082a 30%, #0d1117 70%, #0a0a0f 100%)' }}>
+        <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f0a06 0%, #1a1008 50%, #0f0a06 100%)' }}>
             {/* Animated 3D Background */}
-            <CoinsBackground />
+            <RewardsBackground />
 
             {/* Gradient Orbs */}
-            <div className="fixed top-0 right-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
-            <div className="fixed bottom-0 left-0 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            <div className="fixed top-1/2 right-0 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="fixed top-0 right-1/4 w-96 h-96 bg-orange-600/15 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="fixed bottom-0 left-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="fixed top-1/2 right-0 w-72 h-72 bg-orange-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-            {/* Top Navigation */}
-            <header className="relative z-50 bg-[#1a0a2e]/80 backdrop-blur-md border-b border-purple-800/30 sticky top-0">
-                <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-2 group">
-                        <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform">
-                            <img src="/favicon.png" alt="Adhyaya Logo" className="w-6 h-6 object-contain" />
-                        </div>
-                        <div className="hidden md:block">
-                            <div className="font-bold text-white">ADHYAYA</div>
-                            <div className="text-[10px] text-purple-300/60 uppercase tracking-widest">Humara Platform</div>
-                        </div>
-                    </Link>
 
-                    {/* Centered Nav Links */}
-                    <nav className="hidden md:flex items-center gap-1 px-2 py-1 bg-purple-900/40 border border-purple-700/40 rounded-full">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.name}
-                                to={item.href}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${item.active
-                                    ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-purple-900 shadow-lg shadow-amber-500/30'
-                                    : 'text-purple-300 hover:text-white hover:bg-purple-800/50'
-                                    }`}
-                            >
-                                <item.icon className="w-4 h-4" />
-                                {item.name}
-                            </Link>
-                        ))}
-                    </nav>
-
-                    <div className="flex items-center gap-4">
-                        <button className="relative text-purple-300 hover:text-amber-400 p-2 transition-colors">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
-                        </button>
-                        <Link to="/profile" className="flex items-center gap-3 group">
-                            <div className="text-right hidden md:block">
-                                <div className="text-white font-medium text-sm">{userName} Bhaiya</div>
-                                <div className="text-emerald-400 text-xs flex items-center gap-1 justify-end">
-                                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                                    ONLINE
-                                </div>
-                            </div>
-                            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center text-purple-900 font-bold shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform">
-                                {userName.charAt(0)}
-                            </div>
-                        </Link>
-                    </div>
-                </div>
-            </header>
 
             <main className="container mx-auto px-4 py-8 max-w-6xl relative z-10">
                 {/* Hero Section */}
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-900/60 to-violet-900/60 border border-purple-500/30 rounded-full text-amber-400 text-sm mb-4">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-900/60 to-amber-900/60 border border-orange-500/30 rounded-full text-amber-400 text-sm mb-4">
                         <Trophy className="w-4 h-4" />
                         Your Rewards Journey
                     </div>
@@ -290,7 +326,7 @@ export default function HowToEarn() {
                         <span className="text-white"> Center</span>
                     </h1>
 
-                    <p className="text-purple-200/60 text-lg max-w-xl mx-auto">
+                    <p className="text-orange-100/60 text-lg max-w-xl mx-auto">
                         Jitna seekhoge, utna kamaaoge! Track your progress and level up.
                     </p>
                 </div>
@@ -298,7 +334,7 @@ export default function HowToEarn() {
                 {/* Stats Cards Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
                     {/* Points Card */}
-                    <div className="bg-gradient-to-br from-purple-900/60 to-[#1a0a2e]/80 backdrop-blur rounded-2xl p-5 border border-amber-500/30 hover:border-amber-500/50 transition-all group">
+                    <div className="bg-gradient-to-br from-orange-950/60 to-transparent backdrop-blur rounded-2xl p-5 border border-amber-500/30 hover:border-amber-500/50 transition-all group">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2 text-amber-400 text-xs uppercase tracking-wider">
                                 <Coins className="w-4 h-4" />
@@ -311,26 +347,26 @@ export default function HowToEarn() {
                         <div className="text-4xl font-bold bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
                             {userPoints.toLocaleString()}
                         </div>
-                        <div className="text-purple-300/50 text-sm mt-1">Babua Coins</div>
+                        <div className="text-orange-100/50 text-sm mt-1">Babua Coins</div>
                     </div>
 
                     {/* Current Level Card */}
-                    <div className="bg-gradient-to-br from-purple-900/60 to-[#1a0a2e]/80 backdrop-blur rounded-2xl p-5 border border-purple-500/30 hover:border-purple-500/50 transition-all group">
+                    <div className="bg-gradient-to-br from-orange-950/60 to-transparent backdrop-blur rounded-2xl p-5 border border-orange-500/30 hover:border-orange-500/50 transition-all group">
                         <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2 text-purple-400 text-xs uppercase tracking-wider">
+                            <div className="flex items-center gap-2 text-orange-400 text-xs uppercase tracking-wider">
                                 <Crown className="w-4 h-4" />
                                 Current Level
                             </div>
                             <div className="text-3xl group-hover:animate-bounce">{currentLevel.emoji}</div>
                         </div>
                         <div className="text-2xl font-bold text-white">{currentLevel.name}</div>
-                        <div className="text-purple-300/50 text-sm mt-1">Level {currentLevel.level}</div>
+                        <div className="text-orange-100/50 text-sm mt-1">Level {currentLevel.level}</div>
                     </div>
 
                     {/* Next Level Card */}
-                    <div className="bg-gradient-to-br from-purple-900/60 to-[#1a0a2e]/80 backdrop-blur rounded-2xl p-5 border border-fuchsia-500/30 hover:border-fuchsia-500/50 transition-all">
+                    <div className="bg-gradient-to-br from-orange-950/60 to-transparent backdrop-blur rounded-2xl p-5 border border-orange-500/30 hover:border-orange-500/50 transition-all">
                         <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2 text-fuchsia-400 text-xs uppercase tracking-wider">
+                            <div className="flex items-center gap-2 text-orange-400 text-xs uppercase tracking-wider">
                                 <Rocket className="w-4 h-4" />
                                 Next Level
                             </div>
@@ -339,13 +375,13 @@ export default function HowToEarn() {
                         {nextLevel ? (
                             <>
                                 <div className="text-xl font-bold text-white mb-2">{nextLevel.name}</div>
-                                <div className="w-full h-2 bg-purple-900/60 rounded-full overflow-hidden">
+                                <div className="w-full h-2 bg-orange-950/60 rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-gradient-to-r from-fuchsia-500 to-pink-500 rounded-full transition-all duration-500"
                                         style={{ width: `${progressToNext}%` }}
                                     ></div>
                                 </div>
-                                <div className="text-purple-300/50 text-xs mt-2">
+                                <div className="text-orange-100/50 text-xs mt-2">
                                     {nextLevel.minPoints - userPoints} points to go
                                 </div>
                             </>
@@ -363,7 +399,7 @@ export default function HowToEarn() {
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-white">How to Earn Points</h2>
-                            <p className="text-purple-300/50 text-sm">Complete tasks to earn Babua Coins</p>
+                            <p className="text-orange-100/50 text-sm">Complete tasks to earn Babua Coins</p>
                         </div>
                     </div>
 
@@ -374,7 +410,7 @@ export default function HowToEarn() {
                             return (
                                 <div
                                     key={index}
-                                    className="bg-gradient-to-br from-purple-900/50 to-[#1a0a2e]/70 backdrop-blur rounded-xl p-4 border border-purple-700/30 hover:border-purple-500/50 transition-all hover:scale-[1.02] group cursor-pointer"
+                                    className="bg-gradient-to-br from-orange-950/50 to-transparent backdrop-blur rounded-xl p-4 border border-orange-700/30 hover:border-orange-500/50 transition-all hover:scale-[1.02] group cursor-pointer"
                                 >
                                     <div className="flex items-start gap-4">
                                         <div
@@ -385,13 +421,13 @@ export default function HowToEarn() {
                                         </div>
                                         <div className="flex-1">
                                             <h3 className="text-white font-semibold mb-1">{step.title}</h3>
-                                            <p className="text-purple-300/50 text-sm mb-2">{step.description}</p>
+                                            <p className="text-orange-100/50 text-sm mb-2">{step.description}</p>
                                             <div className={`inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r ${step.color} rounded-full`}>
                                                 <span className="text-white font-bold text-sm">+{step.points}</span>
                                                 <span className="text-white/70 text-xs">pts</span>
                                             </div>
                                         </div>
-                                        <ChevronRight className="w-5 h-5 text-purple-500/50 group-hover:text-purple-400 transition-colors" />
+                                        <ChevronRight className="w-5 h-5 text-orange-500/50 group-hover:text-orange-400 transition-colors" />
                                     </div>
                                 </div>
                             );
@@ -402,12 +438,12 @@ export default function HowToEarn() {
                 {/* Level Progression */}
                 <div className="mb-10">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-fuchsia-500 rounded-xl flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center">
                             <Crown className="w-5 h-5 text-white" />
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-white">Level Progression</h2>
-                            <p className="text-purple-300/50 text-sm">Your journey from Naya Babua to Legend</p>
+                            <p className="text-orange-100/50 text-sm">Your journey from Naya Babua to Legend</p>
                         </div>
                     </div>
 
@@ -424,8 +460,8 @@ export default function HowToEarn() {
                                         className={`relative text-center p-3 rounded-xl transition-all ${isActive
                                             ? 'bg-gradient-to-br from-amber-500/20 to-yellow-500/20 border-2 border-amber-500/50 scale-105'
                                             : isCompleted
-                                                ? 'bg-purple-900/40 border border-purple-600/30'
-                                                : 'bg-purple-900/20 border border-purple-800/20 opacity-60'
+                                                ? 'bg-orange-950/40 border border-orange-600/30'
+                                                : 'bg-orange-950/20 border border-orange-800/20 opacity-60'
                                             }`}
                                     >
                                         {isActive && (
@@ -434,13 +470,13 @@ export default function HowToEarn() {
                                             </div>
                                         )}
                                         <div className={`text-2xl mb-1 ${isCompleted ? '' : 'grayscale'}`}>{level.emoji}</div>
-                                        <div className={`text-xs font-bold mb-0.5 ${isCompleted ? `bg-gradient-to-r ${level.color} bg-clip-text text-transparent` : 'text-purple-500/50'}`}>
+                                        <div className={`text-xs font-bold mb-0.5 ${isCompleted ? `bg-gradient-to-r ${level.color} bg-clip-text text-transparent` : 'text-orange-500/50'}`}>
                                             Lvl {level.level}
                                         </div>
-                                        <div className={`text-[10px] ${isCompleted ? 'text-white' : 'text-purple-500/50'}`}>
+                                        <div className={`text-[10px] ${isCompleted ? 'text-white' : 'text-orange-500/50'}`}>
                                             {level.name}
                                         </div>
-                                        <div className="text-[9px] text-purple-400/40 mt-1">
+                                        <div className="text-[9px] text-orange-400/40 mt-1">
                                             {level.minPoints}+
                                         </div>
                                     </div>
@@ -452,7 +488,7 @@ export default function HowToEarn() {
 
                 {/* Progress Line Divider */}
                 <div className="relative mb-8">
-                    <div className="h-1 bg-purple-900/60 rounded-full">
+                    <div className="h-1 bg-orange-950/60 rounded-full">
                         <div
                             className="h-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-400 rounded-full transition-all duration-500"
                             style={{
@@ -460,19 +496,19 @@ export default function HowToEarn() {
                             }}
                         ></div>
                     </div>
-                    <div className="absolute -top-2 left-0 text-xs text-purple-400/60">Level {currentLevel.level}</div>
-                    <div className="absolute -top-2 right-0 text-xs text-purple-400/60">Level {levels.length}</div>
+                    <div className="absolute -top-2 left-0 text-xs text-orange-400/60">Level {currentLevel.level}</div>
+                    <div className="absolute -top-2 right-0 text-xs text-orange-400/60">Level {levels.length}</div>
                 </div>
 
                 {/* Why Points Matter */}
-                <div className="bg-gradient-to-r from-purple-900/60 via-[#1a0a2e]/80 to-purple-900/60 rounded-2xl p-6 border border-purple-500/20 mb-8">
+                <div className="bg-gradient-to-r from-orange-950/60 via-transparent to-orange-950/60 rounded-2xl p-6 border border-orange-500/20 mb-8">
                     <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
                             <span className="text-xl">💡</span>
                         </div>
                         <div>
                             <h3 className="text-lg font-bold text-white mb-2">Why collect points?</h3>
-                            <p className="text-purple-200/60 text-sm leading-relaxed">
+                            <p className="text-orange-100/60 text-sm leading-relaxed">
                                 Points = <span className="text-amber-400 font-medium">Karma</span>.
                                 Your dedication reflected in numbers. Unlock <span className="text-white font-medium">paid tasks</span>,
                                 get <span className="text-amber-400 font-medium">exclusive access</span>, and earn real rewards! 🚀

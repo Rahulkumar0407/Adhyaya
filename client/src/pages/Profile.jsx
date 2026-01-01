@@ -3,11 +3,12 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import * as THREE from 'three';
 import { useRef } from 'react';
+import UserProfileDropdown from '../components/common/UserProfileDropdown';
 import {
     Edit3, Linkedin, Github, Globe, MapPin,
     GraduationCap, Flame, ClipboardCheck,
     Home, Bell, LogOut, Trophy, Calendar, Sparkles, Mic,
-    Target, Zap, Award, TrendingUp, Star, Code, Crown, RotateCcw
+    Target, Zap, Award, TrendingUp, Star, Code, Crown, RotateCcw, MessageCircle
 } from 'lucide-react';
 
 // Animated 3D Background
@@ -107,6 +108,7 @@ const navItems = [
     { name: 'Mock Interview', href: '/mock-interview', icon: Mic },
     { name: 'Revision', href: '/revision', icon: RotateCcw },
     { name: 'Rewards', href: '/how-to-earn', icon: Trophy },
+    { name: 'Connect', href: '/mentors', icon: MessageCircle },
 ];
 
 export default function Profile() {
@@ -281,40 +283,7 @@ export default function Profile() {
             <div className="fixed top-0 right-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             <div className="fixed bottom-0 left-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
 
-            {/* Top Navigation */}
-            <header className="relative z-50 bg-[#0f0a06]/90 backdrop-blur-md border-b border-orange-900/30 sticky top-0">
-                <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-2 group">
-                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:scale-110 transition-transform">
-                            <img src="/favicon.png" alt="Adhyaya Logo" className="w-6 h-6 object-contain" />
-                        </div>
-                        <div className="hidden md:block">
-                            <div className="font-bold text-white">ADHYAYA</div>
-                            <div className="text-[10px] text-orange-600/50 uppercase tracking-widest">Humara Platform</div>
-                        </div>
-                    </Link>
 
-                    <nav className="hidden md:flex items-center gap-1 px-2 py-1 bg-orange-950/30 border border-orange-900/30 rounded-full backdrop-blur">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.name}
-                                to={item.href}
-                                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-orange-100/60 hover:text-orange-400 hover:bg-orange-900/30 transition-all"
-                            >
-                                <item.icon className="w-4 h-4" />
-                                {item.name}
-                            </Link>
-                        ))}
-                    </nav>
-
-                    <div className="flex items-center gap-4">
-                        <button className="relative text-orange-400/60 hover:text-orange-400 p-2 transition-colors">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
-                        </button>
-                    </div>
-                </div>
-            </header>
 
             <main className="relative z-10 container mx-auto px-4 py-8">
                 {/* Hero Profile Card */}

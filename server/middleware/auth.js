@@ -81,3 +81,7 @@ export const generateTokens = (userId) => {
 export const verifyRefreshToken = (token) => {
     return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 };
+
+// Alias for authorize (for compatibility)
+export const restrictTo = authorize;
+

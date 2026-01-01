@@ -7,7 +7,8 @@ import {
     ClipboardCheck,
     Trophy,
     MessageSquare,
-    LogOut
+    LogOut,
+    Users
 } from 'lucide-react';
 
 const navItems = [
@@ -16,6 +17,12 @@ const navItems = [
         items: [
             { name: 'Dashboardwa', href: '/dashboard', icon: Home },
             { name: 'Imtihaan (Tests)', href: '/revisions', icon: ClipboardCheck },
+        ]
+    },
+    {
+        section: 'MENTOR CONNECT',
+        items: [
+            { name: 'Mentors (1:1 Calls)', href: '/mentors', icon: Users },
         ]
     },
     {

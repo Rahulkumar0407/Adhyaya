@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 export default function AuthSuccess() {
     const [searchParams] = useSearchParams();
@@ -18,9 +19,37 @@ export default function AuthSuccess() {
         if (accessToken && refreshToken) {
             setProcessed(true);
             // Wait for OAuth callback to complete, then navigate
-            handleOAuthCallback(accessToken, refreshToken).then((success) => {
-                if (success) {
-                    navigate('/dashboard', { replace: true });
+            handleOAuthCallback(accessToken, refreshToken).then(async (user) => {
+                if (user) {
+                    const intent = localStorage.getItem('login_intent_role');
+                    localStorage.removeItem('login_intent_role'); // Clean up
+
+                    if (intent === 'mentor') {
+                        if (user.role === 'mentor') {
+                            navigate('/mentor-dashboard', { replace: true });
+                        } else {
+                            // OAuth success but role mismatch -> Auto-Upgrade for this flow
+                            try {
+                                const activateRes = await api.post('/mentors/activate');
+                                if (activateRes.data.success) {
+                                    // Force full reload to refresh context role
+                                    window.location.href = '/mentor-dashboard';
+                                } else {
+                                    navigate('/login?error=activation_failed');
+                                }
+                            } catch (error) {
+                                console.error('Activation failed', error);
+                                navigate('/login?error=activation_failed');
+                            }
+                        }
+                    } else {
+                        // Default / Student intent
+                        if (user.role === 'mentor') {
+                            navigate('/mentor-dashboard', { replace: true });
+                        } else {
+                            navigate('/dashboard', { replace: true });
+                        }
+                    }
                 } else {
                     navigate('/login?error=oauth_failed');
                 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as THREE from 'three';
 import {
@@ -131,6 +131,7 @@ const navItems = [
     { name: 'Mock Interview', href: '/mock-interview', icon: Mic, active: true },
     { name: 'Revision', href: '/revision', icon: RotateCcw },
     { name: 'Rewards', href: '/how-to-earn', icon: Gift },
+    { name: 'Connect', href: '/mentors', icon: Users },
 ];
 
 // Interview types
@@ -221,12 +222,14 @@ const features = [
 ];
 
 export default function MockInterview() {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const userName = user?.name?.split(' ')[0] || 'Babua';
     const [selectedType, setSelectedType] = useState(null);
     const [customRole, setCustomRole] = useState('');
-    const [interviewState, setInterviewState] = useState('selection'); // selection, session, results
+    const [interviewState, setInterviewState] = useState('selection'); // selection, session, results, booking
     const [interviewResults, setInterviewResults] = useState(null);
+    const [showBookingModal, setShowBookingModal] = useState(false);
 
     const startInterview = () => {
         if (!selectedType) return;
@@ -283,56 +286,7 @@ export default function MockInterview() {
             <div className="fixed bottom-[-10%] left-[-5%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none animate-pulse" style={{ animationDelay: '2s' }}></div>
             <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-blue-500/5 rounded-full blur-[150px] pointer-events-none"></div>
 
-            {/* Top Navigation */}
-            <header className="relative z-50 bg-slate-950/40 backdrop-blur-xl border-b border-white/5 sticky top-0">
-                <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-3 group">
-                        <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.3)] group-hover:scale-110 transition-all duration-500">
-                            <img src="/favicon.png" alt="Adhyaya Logo" className="w-8 h-8 object-contain" />
-                        </div>
-                        <div className="hidden md:block">
-                            <div className="font-black text-white tracking-tighter text-xl">ADHYAYA</div>
-                            <div className="text-[10px] text-cyan-400/60 uppercase tracking-[0.3em] font-bold">AI INTERVIEW</div>
-                        </div>
-                    </Link>
 
-                    {/* Centered Nav Links */}
-                    <nav className="hidden lg:flex items-center gap-2 px-2 py-1.5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.name}
-                                to={item.href}
-                                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${item.active
-                                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20'
-                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                                    }`}
-                            >
-                                <item.icon className="w-4 h-4" />
-                                {item.name}
-                            </Link>
-                        ))}
-                    </nav>
-
-                    <div className="flex items-center gap-6">
-                        <button className="relative text-slate-400 hover:text-cyan-400 p-2.5 bg-white/5 rounded-xl border border-white/10 transition-all">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.8)]"></span>
-                        </button>
-                        <Link to="/profile" className="flex items-center gap-4 group">
-                            <div className="text-right hidden md:block">
-                                <div className="text-white font-bold text-sm tracking-tight">{userName} Bhaiya</div>
-                                <div className="text-emerald-400 text-[10px] font-black flex items-center gap-1.5 justify-end tracking-widest">
-                                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
-                                    ONLINE
-                                </div>
-                            </div>
-                            <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center text-white font-black shadow-xl group-hover:scale-110 transition-all duration-500 border border-white/20">
-                                {userName.charAt(0)}
-                            </div>
-                        </Link>
-                    </div>
-                </div>
-            </header>
 
             <main className="container mx-auto px-6 py-12 max-w-7xl relative z-10">
                 {/* Hero Section */}
@@ -380,7 +334,7 @@ export default function MockInterview() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {interviewTypes.map((type) => (
                             <div
                                 key={type.id}
@@ -438,6 +392,56 @@ export default function MockInterview() {
                                 </div>
                             </div>
                         ))}
+
+                        {/* Paid Real Interview Card */}
+                        <div
+                            onClick={() => navigate('/interviewers/premium')}
+                            className="group relative cursor-pointer"
+                        >
+                            <div className="absolute -inset-1 bg-gradient-to-r from-rose-500 to-amber-500 rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-30 transition-all duration-700"></div>
+                            <div className="relative bg-[#1e1b4b]/40 backdrop-blur-2xl rounded-[2.5rem] p-8 border-2 border-rose-500/30 hover:border-rose-500/50 transition-all duration-500 shadow-2xl overflow-hidden">
+                                <div className="absolute top-6 right-6 flex items-center gap-2 px-4 py-2 bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-[0_4px_15px_rgba(244,63,94,0.4)]">
+                                    <Sparkles className="w-3 h-3" />
+                                    Premium
+                                </div>
+
+                                <div className="flex items-start gap-6">
+                                    <div className="w-20 h-20 bg-gradient-to-br from-rose-500 to-amber-500 rounded-3xl flex items-center justify-center shadow-2xl group-hover:rotate-6 transition-all duration-700 border border-white/20">
+                                        <Users className="w-10 h-10 text-white" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-2xl font-black text-rose-100 mb-2 tracking-tight">Real Interview</h3>
+                                        <p className="text-slate-400 text-sm mb-6 leading-relaxed font-medium">Connect with top-tier engineers from MAANG/Product based companies.</p>
+
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <span className="px-4 py-2 bg-rose-500/20 text-rose-300 text-sm font-black rounded-xl border border-rose-500/30">
+                                                ₹399 <span className="text-[10px] opacity-60 font-medium">/ session</span>
+                                            </span>
+                                            <span className="px-4 py-2 bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl border border-amber-500/20">
+                                                Live 1:1
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-8 flex items-center justify-between">
+                                    <div className="flex -space-x-3">
+                                        {[1, 2, 3, 4].map(i => (
+                                            <div key={i} className="w-10 h-10 rounded-full bg-slate-800 border-2 border-[#1e1b4b] flex items-center justify-center text-lg">{['👨‍💼', '👩‍💼', '👨‍🚀', '👩‍🔬'][i - 1]}</div>
+                                        ))}
+                                        <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-[#1e1b4b] flex items-center justify-center text-[10px] font-black text-white">+20</div>
+                                    </div>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate('/interviewers/premium');
+                                        }}
+                                        className="px-6 py-3 bg-white text-rose-900 font-black uppercase tracking-widest text-xs rounded-xl shadow-xl hover:scale-105 active:scale-95 transition-all"
+                                    >
+                                        Book Slot
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -478,5 +482,5 @@ export default function MockInterview() {
             </main>
         </div>
     );
-}
 
+}

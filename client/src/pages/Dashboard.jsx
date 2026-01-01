@@ -261,56 +261,7 @@ export default function Dashboard() {
             <div className="fixed top-1/2 left-1/4 w-72 h-72 bg-green-600/10 rounded-full blur-3xl -translate-y-1/2 pointer-events-none"></div>
             <div className="fixed bottom-1/4 right-1/4 w-64 h-64 bg-gray-400/10 rounded-full blur-3xl pointer-events-none"></div>
 
-            {/* Top Navigation */}
-            <header className="relative z-50 bg-gray-800/90 backdrop-blur-md border-b border-gray-600/30 sticky top-0">
-                <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-2 group">
-                        <img src="/favicon.png" alt="Adhyaya Logo" className="w-10 h-10 object-contain hover:scale-110 transition-transform" />
-                        <div className="hidden md:block">
-                            <div className="font-bold text-white">ADHYAYA</div>
-                            <div className="text-[10px] text-gray-400 uppercase tracking-widest">Humara Platform</div>
-                        </div>
-                    </Link>
 
-                    <nav className="hidden md:flex items-center gap-1 px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-full backdrop-blur">
-                        <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-lime-500 to-green-600 text-white shadow-lg shadow-lime-500/20">
-                            <Home className="w-4 h-4" />
-                            Dashboard
-                        </Link>
-                        <Link to="/mock-interview" className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-300 hover:text-lime-400 hover:bg-gray-600/50 transition-all">
-                            <Mic className="w-4 h-4" />
-                            Mock Interview
-                        </Link>
-                        <Link to="/revision" className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-300 hover:text-lime-400 hover:bg-gray-600/50 transition-all">
-                            <RotateCcw className="w-4 h-4" />
-                            Revision
-                        </Link>
-                        <Link to="/how-to-earn" className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-300 hover:text-lime-400 hover:bg-gray-600/50 transition-all">
-                            <Gift className="w-4 h-4" />
-                            Rewards
-                        </Link>
-                    </nav>
-
-                    <div className="flex items-center gap-4">
-                        <button className="relative text-gray-400 hover:text-lime-400 p-2 transition-colors">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1 right-1 w-2 h-2 bg-lime-400 rounded-full animate-pulse"></span>
-                        </button>
-                        <Link to="/profile" className="flex items-center gap-3 group">
-                            <div className="text-right hidden md:block">
-                                <div className="text-white font-medium text-sm">{userName} Bhaiya</div>
-                                <div className="text-lime-400 text-xs flex items-center gap-1 justify-end">
-                                    <span className="w-1.5 h-1.5 bg-lime-400 rounded-full animate-pulse"></span>
-                                    ONLINE
-                                </div>
-                            </div>
-                            <div className="w-10 h-10 bg-gradient-to-br from-lime-500 to-green-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg shadow-lime-500/20 group-hover:scale-110 transition-transform ring-2 ring-lime-400/30">
-                                {userName.charAt(0)}
-                            </div>
-                        </Link>
-                    </div>
-                </div>
-            </header>
 
             {/* Main Content */}
             <main className="relative z-10 container mx-auto px-4 py-8">

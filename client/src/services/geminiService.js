@@ -1,18 +1,16 @@
 // Gemini AI Service - Interview Question Generation with API Key Rotation
 // Uses multiple API keys with automatic fallback
+// API keys are loaded from environment variables to prevent exposure
 
 const GEMINI_API_KEYS = [
-    'AIzaSyDVY4zBTunPZt_92g0QJOk7zIO0cHt98jI',
-    'AIzaSyCJKnsbf93mLOFTUCD3xYJWFRVOOTxLPms',
-    'AIzaSyDC-CtF-aFhWQCkb3WMiLTZrbkuY-ODCAs',
-    'AIzaSyB7VzJfh7LeLLVfSABIo07OnILroGqwq2c',
-    'AIzaSyC2iS2lBmEBxJFTjp7fG8TRBZKGINCmYWI',
-    'AIzaSyASbFAKZQnxkPyV9ly1R4agz69ruaujFmM',
-    'AIzaSyBs7BP76pvSQS5f3yu5DPBV8FfmK0hiaZ8',
-    'AIzaSyALo3O4oeUlfUvRr56KYXVVRAbefSl62OI'
-];
+    import.meta.env.VITE_GEMINI_API_KEY_1,
+    import.meta.env.VITE_GEMINI_API_KEY_2,
+    import.meta.env.VITE_GEMINI_API_KEY_3,
+    import.meta.env.VITE_GEMINI_API_KEY_4,
+].filter(key => key); // Filter out undefined keys
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
 
 class GeminiService {
     constructor() {

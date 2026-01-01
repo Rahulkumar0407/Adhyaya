@@ -6,6 +6,7 @@ import gsap from 'gsap';
 
 const navLinks = [
     { name: 'Jugaad (Patterns)', href: '/patterns' },
+    { name: 'Mentors (1:1 Calls)', href: '/mentors' },
     { name: 'Charcha (Chats)', href: '/pods' },
     { name: 'Hamara Adda (About)', href: '/about' },
 ];

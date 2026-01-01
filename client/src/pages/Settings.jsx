@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import UserProfileDropdown from '../components/common/UserProfileDropdown';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import * as THREE from 'three';
@@ -127,6 +128,7 @@ export default function Settings() {
         linkedinUrl: '',
         githubUrl: '',
         portfolioUrl: '',
+        revisionMode: 'manual'
     });
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -155,6 +157,7 @@ export default function Settings() {
                     linkedinUrl: profile.socialLinks?.linkedin || '',
                     githubUrl: profile.socialLinks?.github || '',
                     portfolioUrl: profile.socialLinks?.portfolio || '',
+                    revisionMode: profile.revisionMode || 'manual'
                 });
                 if (profile.avatar) {
                     setAvatarPreview(profile.avatar);
@@ -228,6 +231,7 @@ export default function Settings() {
                     github: formData.githubUrl,
                     portfolio: formData.portfolioUrl,
                 },
+                revisionMode: formData.revisionMode,
             };
 
             if (avatarUrl) {
@@ -263,6 +267,7 @@ export default function Settings() {
         { id: 'basic', label: 'Basic', icon: User, emoji: '👤' },
         { id: 'education', label: 'Education', icon: GraduationCap, emoji: '🎓' },
         { id: 'social', label: 'Social', icon: Globe, emoji: '🔗' },
+        { id: 'preferences', label: 'Settings', icon: Zap, emoji: '⚙️' },
     ];
 
     if (loading) {
@@ -285,44 +290,7 @@ export default function Settings() {
             <div className="fixed top-0 right-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             <div className="fixed bottom-0 left-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
 
-            {/* Top Navigation - Same as Profile */}
-            <header className="relative z-50 bg-[#0f0a06]/90 backdrop-blur-md border-b border-orange-900/30 sticky top-0">
-                <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-2 group">
-                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:scale-110 transition-transform">
-                            <img src="/favicon.png" alt="Adhyaya Logo" className="w-6 h-6 object-contain" />
-                        </div>
-                        <div className="hidden md:block">
-                            <div className="font-bold text-white">ADHYAYA</div>
-                            <div className="text-[10px] text-orange-600/50 uppercase tracking-widest">Humara Platform</div>
-                        </div>
-                    </Link>
 
-                    <nav className="hidden md:flex items-center gap-1 px-2 py-1 bg-orange-950/30 border border-orange-900/30 rounded-full backdrop-blur">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.name}
-                                to={item.href}
-                                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-orange-100/60 hover:text-orange-400 hover:bg-orange-900/30 transition-all"
-                            >
-                                <item.icon className="w-4 h-4" />
-                                {item.name}
-                            </Link>
-                        ))}
-                    </nav>
-
-                    <div className="flex items-center gap-4">
-                        <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-amber-500/20 px-4 py-2 rounded-full border border-orange-500/30">
-                            <Rocket className="w-4 h-4 text-orange-500" />
-                            <span className="text-xs font-medium text-orange-400">Edit Mode</span>
-                        </div>
-                        <button className="relative text-orange-400/60 hover:text-orange-400 p-2 transition-colors">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
-                        </button>
-                    </div>
-                </div>
-            </header>
 
             <main className="relative z-10 container mx-auto px-4 py-8 max-w-4xl">
                 {/* Page Header - Matching Profile style */}
@@ -678,6 +646,84 @@ export default function Settings() {
                                             placeholder="https://tumhari-website.com"
                                             className="w-full px-5 py-4 bg-orange-950/30 border-2 border-orange-900/30 rounded-2xl text-white placeholder-orange-100/30 focus:outline-none focus:border-green-500 focus:shadow-lg focus:shadow-green-500/10 transition-all duration-300"
                                         />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Preferences */}
+                    {activeSection === 'preferences' && (
+                        <div className="relative">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-cyan-500/10 rounded-3xl blur-xl"></div>
+                            <div className="relative bg-gradient-to-br from-orange-950/40 to-[#0f0a06]/60 backdrop-blur rounded-3xl border border-orange-800/30 p-8 overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500"></div>
+                                <Sparkles className="absolute top-4 right-4 w-6 h-6 text-orange-300/30" />
+
+                                <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                                        <Zap className="w-6 h-6 text-white" />
+                                    </div>
+                                    App Settings
+                                </h2>
+                                <p className="text-orange-100/50 text-sm mb-8">Apna experience customize karo! 🛠️</p>
+
+                                <div className="space-y-6">
+                                    <div className="group">
+                                        <label className="block text-sm text-orange-100/70 mb-4 flex items-center gap-2">
+                                            <RotateCcw className="w-4 h-4 text-cyan-500" />
+                                            Revision Mode Preference
+                                        </label>
+
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <label className={`relative p-4 rounded-2xl border-2 transition-all cursor-pointer ${formData.revisionMode === 'adaptive'
+                                                ? 'bg-cyan-500/10 border-cyan-500/50'
+                                                : 'bg-orange-950/20 border-orange-900/30 hover:bg-orange-950/40'
+                                                }`}>
+                                                <input
+                                                    type="radio"
+                                                    name="revisionMode"
+                                                    value="adaptive"
+                                                    checked={formData.revisionMode === 'adaptive'}
+                                                    onChange={handleChange}
+                                                    className="absolute opacity-0"
+                                                />
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.revisionMode === 'adaptive' ? 'border-cyan-500' : 'border-gray-500'
+                                                        }`}>
+                                                        {formData.revisionMode === 'adaptive' && <div className="w-2.5 h-2.5 rounded-full bg-cyan-500" />}
+                                                    </div>
+                                                    <span className={`font-bold ${formData.revisionMode === 'adaptive' ? 'text-white' : 'text-gray-400'}`}>Adaptive Mode</span>
+                                                </div>
+                                                <p className="text-xs text-orange-100/50 pl-8">
+                                                    AI aapka plan banayega. Spaced repetition aur weak topics pe focus. Best for long-term retention. 🧠
+                                                </p>
+                                            </label>
+
+                                            <label className={`relative p-4 rounded-2xl border-2 transition-all cursor-pointer ${formData.revisionMode === 'manual'
+                                                ? 'bg-orange-500/10 border-orange-500/50'
+                                                : 'bg-orange-950/20 border-orange-900/30 hover:bg-orange-950/40'
+                                                }`}>
+                                                <input
+                                                    type="radio"
+                                                    name="revisionMode"
+                                                    value="manual"
+                                                    checked={formData.revisionMode === 'manual'}
+                                                    onChange={handleChange}
+                                                    className="absolute opacity-0"
+                                                />
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.revisionMode === 'manual' ? 'border-orange-500' : 'border-gray-500'
+                                                        }`}>
+                                                        {formData.revisionMode === 'manual' && <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />}
+                                                    </div>
+                                                    <span className={`font-bold ${formData.revisionMode === 'manual' ? 'text-white' : 'text-gray-400'}`}>Manual Mode</span>
+                                                </div>
+                                                <p className="text-xs text-orange-100/50 pl-8">
+                                                    Aap khud decide karein kya aur kab padhna hai. Full control aapke haath mein. 🛠️
+                                                </p>
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

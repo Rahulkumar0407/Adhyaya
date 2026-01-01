@@ -11,6 +11,9 @@ import {
     getPreviousDbmsLesson, getDbmsTotalLessons, getDbmsLessonNumber, dbmsLevelColors
 } from '../data/dbmsCourse';
 import { recordActivity } from '../services/activityService';
+import UnderstandingModal from '../components/common/UnderstandingModal';
+import api from '../services/api';
+import axios from 'axios';
 
 export default function DBMSCourse() {
     const { user, token } = useAuth();
@@ -32,6 +35,8 @@ export default function DBMSCourse() {
         const saved = localStorage.getItem('userPoints');
         return saved ? parseInt(saved) : 500;
     });
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [selectedLessonForFeedback, setSelectedLessonForFeedback] = useState(null);
 
     const heroRef = useRef(null);
 
@@ -100,25 +105,57 @@ export default function DBMSCourse() {
         );
     };
 
-    const toggleComplete = async (lessonId, e) => {
-        e.stopPropagation();
-        const wasCompleted = completedLessons.includes(lessonId);
+    const toggleComplete = async (lessonIdToToggle, e) => {
+        if (e) e.stopPropagation();
+        const wasCompleted = completedLessons.includes(lessonIdToToggle);
 
-        setCompletedLessons(prev =>
-            prev.includes(lessonId)
-                ? prev.filter(id => id !== lessonId)
-                : [...prev, lessonId]
-        );
+        if (wasCompleted) {
+            setCompletedLessons(prev => prev.filter(id => id !== lessonIdToToggle));
+        } else {
+            // Trigger feedback modal for current lesson if not already completed
+            if (lessonIdToToggle === lessonId) {
+                const lessonToFeedback = getDbmsLessonById(lessonIdToToggle);
+                setSelectedLessonForFeedback(lessonToFeedback);
+                setShowFeedbackModal(true);
+            } else {
+                setCompletedLessons(prev => [...prev, lessonIdToToggle]);
+            }
+        }
 
         if (!wasCompleted && token) {
             try {
                 await recordActivity(token, 'video_watched', {
                     courseId: 'dbms',
-                    lessonId: lessonId,
+                    lessonId: lessonIdToToggle,
                 });
             } catch (error) {
                 console.error('Failed to record activity:', error);
             }
+        }
+    };
+
+    const handleFeedbackSubmit = async (data) => {
+        try {
+            await api.post('/adaptive-revision/feedback', {
+                course: 'dbms',
+                topicId: lessonId,
+                topicTitle: currentLesson.title,
+                understandingLevel: data.understandingLevel,
+                notes: data.notes
+            });
+
+            // Mark as complete locally
+            if (!completedLessons.includes(lessonId)) {
+                setCompletedLessons((prev) => [...prev, lessonId]);
+            }
+            setShowFeedbackModal(false);
+        } catch (error) {
+            console.error('Failed to submit understanding feedback:', error);
+            // Mark as complete even if API fails
+            if (!completedLessons.includes(lessonId)) {
+                setCompletedLessons((prev) => [...prev, lessonId]);
+            }
+            setShowFeedbackModal(false);
         }
     };
 
@@ -267,20 +304,28 @@ export default function DBMSCourse() {
 
                                         <div className="flex items-center gap-4">
                                             {isLocked ? (
-                                                <button
+                                                <div
                                                     onClick={(e) => {
                                                         e.stopPropagation();
+                                                        e.preventDefault();
                                                         unlockSection(section.id, section.pointsRequired);
                                                     }}
-                                                    disabled={userPoints < section.pointsRequired}
-                                                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${userPoints >= section.pointsRequired
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                            e.preventDefault();
+                                                            unlockSection(section.id, section.pointsRequired);
+                                                        }
+                                                    }}
+                                                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer ${userPoints >= section.pointsRequired
                                                         ? 'bg-yellow-500 text-black hover:bg-yellow-400'
-                                                        : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-gray-700 text-gray-400 cursor-not-allowed pointer-events-none'
                                                         }`}
                                                 >
                                                     <Coins className="w-4 h-4" />
                                                     Unlock ({section.pointsRequired} pts)
-                                                </button>
+                                                </div>
                                             ) : (
                                                 <>
                                                     <div className="text-right">
@@ -314,16 +359,28 @@ export default function DBMSCourse() {
                                                         <span className="text-gray-600 text-xs font-mono w-8">
                                                             {String(lessonNumber).padStart(2, '0')}
                                                         </span>
-                                                        <button
-                                                            onClick={(e) => toggleComplete(lesson.id, e)}
-                                                            className="flex-shrink-0"
+                                                        <div
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                toggleComplete(lesson.id, e);
+                                                            }}
+                                                            className="flex-shrink-0 cursor-pointer"
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                                    e.preventDefault();
+                                                                    toggleComplete(lesson.id, e);
+                                                                }
+                                                            }}
                                                         >
                                                             {isCompleted ? (
                                                                 <CheckCircle className="w-5 h-5 text-emerald-500" />
                                                             ) : (
                                                                 <Circle className="w-5 h-5 text-gray-600 hover:text-emerald-400" />
                                                             )}
-                                                        </button>
+                                                        </div>
                                                         <div className="flex-1">
                                                             <span className={`text-sm ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-300'}`}>
                                                                 {lesson.title}
@@ -565,6 +622,14 @@ export default function DBMSCourse() {
                     </div>
                 </div>
             </main>
+
+            {/* Feedback Modal */}
+            <UnderstandingModal
+                isOpen={showFeedbackModal}
+                onClose={() => setShowFeedbackModal(false)}
+                onSubmit={handleFeedbackSubmit}
+                topic={selectedLessonForFeedback}
+            />
         </div>
     );
 }

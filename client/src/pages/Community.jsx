@@ -11,6 +11,7 @@ const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Mock Interview', href: '/mock-interview', icon: Mic },
     { name: 'Points Kaise?', href: '/how-to-earn', icon: ClipboardCheck },
+    { name: 'Connect', href: '/mentors', icon: MessageSquare },
 ];
 
 // Sample posts data

@@ -6,18 +6,18 @@ import gsap from 'gsap';
 
 // Floating code snippets data
 const floatingCodeSnippets = [
-    { code: 'const dsa = await babua.learn();', color: 'purple' },
-    { code: 'function crackInterview() {', color: 'yellow' },
-    { code: "return '🎉 Offer Letter!';", color: 'green' },
-    { code: 'babua.practice(100);', color: 'blue' },
-    { code: "require('placement-phodna');", color: 'orange' },
-    { code: 'async function solve() {', color: 'purple' },
-    { code: '// Ab chalega kaam! 🚀', color: 'gray' },
-    { code: 'const confidence = 💪;', color: 'yellow' },
-    { code: 'while(true) { learn(); }', color: 'green' },
-    { code: 'if(prepared) { crack(); }', color: 'blue' },
-    { code: 'import success from "hard-work";', color: 'orange' },
-    { code: 'new Promise(resolve => 🏆);', color: 'purple' },
+    { code: 'DSA ke chakkar mein Project gol ho gaya! 🤯', color: 'purple' },
+    { code: 'Resume pick hi nahi ho raha bhai 😭', color: 'yellow' },
+    { code: 'System Design ne dimaag ka dahi kar diya 😵‍💫', color: 'green' },
+    { code: 'HR round mein kya bolne ka? 🤔', color: 'blue' },
+    { code: 'LeetCode contest mein rank gir gayi 📉', color: 'orange' },
+    { code: 'Off-campus apply kiya par reply nahi aaya 🚫', color: 'purple' },
+    { code: 'DP samajh nahi aa raha yaar 😫', color: 'gray' },
+    { code: 'Managerial round mein atak gaya 🥲', color: 'yellow' },
+    { code: 'Mock interview mein blank ho gaya 😶', color: 'green' },
+    { code: 'CTC sunke chakkar aa gaya 🤑', color: 'blue' },
+    { code: 'CP karein ya Dev? Confused hoon! 🤷‍♂️', color: 'orange' },
+    { code: 'Referral maang maang ke thak gaya 🙏', color: 'purple' },
 ];
 
 // Floating Code Snippet Component
@@ -27,53 +27,73 @@ function FloatingCodeSnippet({ code, color, index }) {
     useEffect(() => {
         if (!snippetRef.current) return;
 
-        // Random starting position
-        const startX = Math.random() * 100 - 50;
-        const startY = Math.random() * 100 - 50;
+        const direction = index % 2 === 0 ? -1 : 1;
 
-        // Set initial position
-        gsap.set(snippetRef.current, {
-            x: startX,
-            y: startY,
-            opacity: 0,
-            scale: 0.5,
-        });
+        // Initial Burst Target (Push far out)
+        // Push slightly outside the main content area initially
+        const burstX = direction * (400 + Math.random() * 200);
+        const burstY = (Math.random() - 0.5) * 500;
 
-        // Entry animation with delay based on index
-        gsap.to(snippetRef.current, {
-            opacity: 0.8,
+        // Reset to center
+        gsap.set(snippetRef.current, { x: 0, y: 0, opacity: 0, scale: 0 });
+
+        // Phase 1: Burst Out (Shoot Out)
+        const tl = gsap.timeline();
+
+        tl.to(snippetRef.current, {
+            x: burstX,
+            y: burstY,
+            opacity: 1,
             scale: 1,
-            duration: 1,
-            delay: 1.5 + index * 0.2,
-            ease: "back.out(1.7)"
+            duration: 1.5 + Math.random(), // Varied speed for natural burst
+            ease: "back.out(1.2)",
+            delay: 0.5 + index * 0.1 // Cascade start
         });
 
-        // Continuous floating animation
-        const duration = 8 + Math.random() * 10;
-        const xRange = 150 + Math.random() * 200;
-        const yRange = 100 + Math.random() * 150;
+        // Phase 2: Perpetual Float (Keep Flowing)
+        const startFloating = () => {
+            // Random point anywhere on screen
+            const floatX = (Math.random() - 0.5) * window.innerWidth * 0.9;
+            const floatY = (Math.random() - 0.5) * window.innerHeight * 0.8;
+            const duration = 8 + Math.random() * 6; // Slow, floaty
 
-        gsap.to(snippetRef.current, {
-            x: `+=${Math.random() > 0.5 ? xRange : -xRange}`,
-            y: `+=${Math.random() > 0.5 ? yRange : -yRange}`,
-            rotation: Math.random() * 20 - 10,
-            duration: duration,
-            repeat: -1,
-            yoyo: true,
-            ease: "sine.inOut",
-            delay: 2 + index * 0.3
-        });
+            gsap.to(snippetRef.current, {
+                x: floatX,
+                y: floatY,
+                rotation: Math.random() * 60 - 30,
+                duration: duration,
+                ease: "sine.inOut",
+                onComplete: startFloating
+            });
+        };
 
-        // Subtle pulsing glow
-        gsap.to(snippetRef.current, {
-            opacity: 0.4,
-            duration: 2 + Math.random() * 2,
-            repeat: -1,
-            yoyo: true,
-            ease: "sine.inOut",
-            delay: 3 + index * 0.1
-        });
+        // Start floating chain after burst
+        tl.call(startFloating);
 
+        // Opacity Logic: Fade if over main content
+        const checkOverlap = () => {
+            if (!snippetRef.current) return;
+            // Use quick getter for performance
+            const currentX = gsap.getProperty(snippetRef.current, "x");
+            const currentY = gsap.getProperty(snippetRef.current, "y");
+
+            // Danger Zone (Main Content Area)
+            // Approx 700px wide (x +/- 350), 400px tall (y +/- 200) centered from the origin (which is screen center)
+            const inDangerZone = Math.abs(currentX) < 350 && Math.abs(currentY) < 200;
+
+            gsap.to(snippetRef.current, {
+                opacity: inDangerZone ? 0.1 : 0.8, // Fade almost away if blocking text, else high visibility
+                duration: 0.5,
+                overwrite: "auto"
+            });
+        };
+
+        gsap.ticker.add(checkOverlap);
+
+        return () => {
+            gsap.killTweensOf(snippetRef.current);
+            gsap.ticker.remove(checkOverlap);
+        };
     }, [index]);
 
     const colorClasses = {
@@ -85,31 +105,15 @@ function FloatingCodeSnippet({ code, color, index }) {
         gray: 'text-gray-400 border-gray-500/30 shadow-gray-500/20',
     };
 
-    // Position snippets around the page
-    const positions = [
-        { top: '5%', left: '5%' },
-        { top: '10%', right: '8%' },
-        { top: '25%', left: '2%' },
-        { top: '20%', right: '3%' },
-        { bottom: '30%', left: '5%' },
-        { bottom: '25%', right: '5%' },
-        { top: '40%', left: '8%' },
-        { top: '35%', right: '10%' },
-        { bottom: '15%', left: '10%' },
-        { bottom: '10%', right: '12%' },
-        { top: '60%', left: '3%' },
-        { top: '55%', right: '2%' },
-    ];
-
-    const position = positions[index % positions.length];
-
     return (
         <div
             ref={snippetRef}
-            className={`absolute font-mono text-xs md:text-sm px-3 py-1.5 rounded-lg bg-[#1a1a1a]/80 border backdrop-blur-sm shadow-lg pointer-events-none z-20 whitespace-nowrap ${colorClasses[color]}`}
+            className={`absolute font-mono text-xs md:text-sm px-3 py-1.5 rounded-lg bg-[#1a1a1a] border backdrop-blur-sm shadow-xl pointer-events-none z-0 whitespace-nowrap ${colorClasses[color]}`}
             style={{
-                ...position,
-                boxShadow: `0 0 20px currentColor`,
+                top: '55%', // Approx center of code editor
+                left: '50%',
+                transform: 'translate(-50%, -50%)', // Original Center
+                boxShadow: `0 0 15px currentColor`,
             }}
         >
             {code}
@@ -168,10 +172,10 @@ export default function HeroSection() {
                     <div className="flex flex-wrap justify-center gap-4 mb-8">
                         <Link
                             to="/login"
-                            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-orange-500/30"
+                            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-orange-500/30 group"
                         >
-                            Padhai Shuru Karein
-                            <span className="text-lg">✍️</span>
+                            Padhai Shuru Karein (Free)
+                            <span className="text-lg group-hover:translate-x-1 transition-transform">🚀</span>
                         </Link>
                         <button
                             className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#2a2a2a] border border-gray-600 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:border-orange-500"
@@ -181,15 +185,15 @@ export default function HeroSection() {
                         </button>
                     </div>
 
-                    {/* Trust Badges */}
+                    {/* Trust Badges - Social Proof & Zero Risk */}
                     <div className="flex items-center justify-center gap-8 text-sm mb-12">
-                        <div className="flex items-center gap-2 text-gray-400">
+                        <div className="flex items-center gap-2 text-gray-400 bg-white/5 px-4 py-2 rounded-full border border-white/10">
                             <span className="text-green-500">✓</span>
-                            <span>Ekdum Free Hai</span>
+                            <span>No Credit Card Req</span>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-400">
+                        <div className="flex items-center gap-2 text-gray-400 bg-white/5 px-4 py-2 rounded-full border border-white/10">
                             <span className="text-orange-500">🔥</span>
-                            <span>50k+ Sawaal</span>
+                            <span>Join 10k+ IIT/NIT Students</span>
                         </div>
                     </div>
 
@@ -259,5 +263,3 @@ export default function HeroSection() {
         </section>
     );
 }
-
-

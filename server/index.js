@@ -19,6 +19,16 @@ import podRoutes from './routes/pods.js';
 import dashboardRoutes from './routes/dashboard.js';
 import profileRoutes from './src/routes/profile.js';
 import chatRoutes from './routes/chat.js';
+// Mentorship routes
+import mentorRoutes from './routes/mentors.js';
+import callRoutes from './routes/calls.js';
+import walletRoutes from './routes/wallet.js';
+// Adaptive Revision routes
+import adaptiveRevisionRoutes from './routes/adaptiveRevision.js';
+import revisionQuizRoutes from './routes/revisionQuiz.js';
+// Doubt Solving System routes
+import doubtRoutes from './routes/doubts.js';
+import doubtMentorRoutes from './routes/doubts-mentor.js';
 
 // Initialize express app
 const app = express();
@@ -70,6 +80,16 @@ app.use('/api/pods', podRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/chat', chatRoutes);
+// Mentorship Routes
+app.use('/api/mentors', mentorRoutes);
+app.use('/api/calls', callRoutes);
+app.use('/api/wallet', walletRoutes);
+// Adaptive Revision Routes
+app.use('/api/adaptive-revision', adaptiveRevisionRoutes);
+app.use('/api/revision-quiz', revisionQuizRoutes);
+// Doubt Solving System Routes
+app.use('/api/doubts', doubtRoutes);
+app.use('/api/doubts/mentor', doubtMentorRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -103,6 +123,65 @@ io.on('connection', (socket) => {
   socket.on('leave-chat', (channel) => {
     socket.leave(`chat-${channel}`);
     io.to(`chat-${channel}`).emit('user-left', { channel, count: io.sockets.adapter.rooms.get(`chat-${channel}`)?.size || 0 });
+  });
+
+  // WebRTC Signaling for Mentorship Calls
+  socket.on('join-call', (roomId) => {
+    socket.join(`call-${roomId}`);
+    const room = io.sockets.adapter.rooms.get(`call-${roomId}`);
+    const numClients = room ? room.size : 0;
+    console.log(`User ${socket.id} joined call room ${roomId}, clients: ${numClients}`);
+
+    if (numClients === 1) {
+      socket.emit('call-created', roomId);
+    } else if (numClients === 2) {
+      socket.emit('call-joined', roomId);
+      io.to(`call-${roomId}`).emit('call-ready', roomId);
+    } else {
+      socket.emit('call-full', roomId);
+    }
+  });
+
+  socket.on('call-offer', ({ roomId, offer }) => {
+    socket.to(`call-${roomId}`).emit('call-offer', { offer, from: socket.id });
+  });
+
+  socket.on('call-answer', ({ roomId, answer }) => {
+    socket.to(`call-${roomId}`).emit('call-answer', { answer, from: socket.id });
+  });
+
+  socket.on('ice-candidate', ({ roomId, candidate }) => {
+    socket.to(`call-${roomId}`).emit('ice-candidate', { candidate, from: socket.id });
+  });
+
+  socket.on('leave-call', (roomId) => {
+    socket.leave(`call-${roomId}`);
+    socket.to(`call-${roomId}`).emit('call-ended', { from: socket.id });
+  });
+
+  // Doubt Chat Real-time messaging
+  socket.on('join:room', (doubtId) => {
+    socket.join(`room:${doubtId}`);
+    console.log(`User ${socket.id} joined doubt room ${doubtId}`);
+  });
+
+  socket.on('leave:room', (doubtId) => {
+    socket.leave(`room:${doubtId}`);
+    console.log(`User ${socket.id} left doubt room ${doubtId}`);
+  });
+
+  socket.on('message:send', (data) => {
+    const { roomId, message, messageType, user, voiceNote, whiteboard } = data;
+    // Broadcast to all other users in the room (excluding sender)
+    socket.to(`room:${roomId}`).emit('message:receive', {
+      message,
+      messageType,
+      user,
+      voiceNote,
+      whiteboard,
+      timestamp: new Date()
+    });
+    console.log(`Message sent to doubt room ${roomId} by ${user?.name}`);
   });
 
   socket.on('disconnect', () => {
