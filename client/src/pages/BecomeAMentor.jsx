@@ -103,7 +103,7 @@ const BecomeAMentor = () => {
 
     const isStep1Valid = formData.headline && formData.expertise.length > 0 && formData.yearsOfExperience;
     const isStep2Valid = formData.bio && formData.currentRole && formData.linkedinUrl;
-    const isStep3Valid = formData.ratePerMinute >= 1 && formData.ratePerMinute <= 100;
+    const isStep3Valid = formData.ratePerMinute >= 9 && formData.ratePerMinute <= 100;
 
     if (success) {
         return (
@@ -215,7 +215,7 @@ const BecomeAMentor = () => {
                         <BenefitCard
                             icon={Wallet}
                             title="Set Your Rate"
-                            description="You decide your per-minute rate (₹1-100/min). Higher skills = higher earnings."
+                            description="You decide your per-minute rate (₹9-100/min). Higher skills = higher earnings."
                             delay={0}
                         />
                         <BenefitCard
@@ -492,14 +492,14 @@ const BecomeAMentor = () => {
                                             type="number"
                                             value={formData.ratePerMinute}
                                             onChange={(e) => setFormData(prev => ({ ...prev, ratePerMinute: parseInt(e.target.value) || '' }))}
-                                            placeholder="5"
-                                            min={1}
+                                            placeholder="9"
+                                            min={9}
                                             max={100}
                                             className="w-full pl-8 pr-16 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent text-2xl font-bold"
                                         />
                                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">/min</span>
                                     </div>
-                                    <p className="text-gray-400 text-sm mt-1">Range: ₹1 - ₹100 per minute</p>
+                                    <p className="text-gray-400 text-sm mt-1">Range: ₹9 - ₹100 per minute</p>
                                 </div>
 
                                 {formData.ratePerMinute && (

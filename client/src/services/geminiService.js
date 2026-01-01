@@ -115,6 +115,35 @@ class GeminiService {
         throw lastError || new Error('Failed to get response from Gemini API');
     }
 
+    // Fallback questions when API is unavailable
+    getFallbackQuestion(interviewType, index = 0) {
+        const fallbacks = {
+            'dsa': [
+                "**Two Sum**\nGiven an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n\nExample:\nInput: nums = [2,7,11,15], target = 9\nOutput: [0,1]\nExplanation: nums[0] + nums[1] = 2 + 7 = 9",
+                "**Valid Parentheses**\nGiven a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.\n\nExample:\nInput: s = '()[]{}'\nOutput: true",
+                "**Maximum Subarray**\nFind the contiguous subarray with the largest sum.\n\nExample:\nInput: nums = [-2,1,-3,4,-1,2,1,-5,4]\nOutput: 6 (subarray [4,-1,2,1])"
+            ],
+            'system-design': [
+                "Let's design a URL shortening service like bit.ly. How would you approach the system design? Consider the scale of handling millions of URLs.",
+                "Can you walk me through designing a real-time chat application like WhatsApp? Focus on message delivery guarantees and scalability.",
+                "How would you design a video streaming platform like YouTube? Consider upload, storage, transcoding, and CDN aspects."
+            ],
+            'dbms': [
+                "Explain the difference between INNER JOIN, LEFT JOIN, and RIGHT JOIN with examples. When would you use each?",
+                "What are ACID properties in databases? Can you explain each with a real-world transaction example?",
+                "What is database normalization? Explain 1NF, 2NF, and 3NF with examples."
+            ],
+            'custom': [
+                "Tell me about a challenging project you worked on. What was your role and how did you overcome obstacles?",
+                "How do you approach debugging a complex issue in production? Walk me through your process.",
+                "Explain a technical concept you're passionate about to someone non-technical."
+            ]
+        };
+
+        const questions = fallbacks[interviewType] || fallbacks['custom'];
+        return questions[index % questions.length];
+    }
+
     // Generate interview questions based on type
     async generateInterviewQuestions(interviewType, customRole = '', previousQuestions = []) {
         const prompts = {
@@ -176,7 +205,12 @@ Respond with ONLY the question text, nothing else. Make it conversational like a
         };
 
         const prompt = prompts[interviewType] || prompts['custom'];
-        return await this.makeRequest(prompt);
+        try {
+            return await this.makeRequest(prompt);
+        } catch (error) {
+            console.warn('API failed, using fallback question:', error.message);
+            return this.getFallbackQuestion(interviewType, previousQuestions.length);
+        }
     }
 
     // Generate follow-up question based on previous answer

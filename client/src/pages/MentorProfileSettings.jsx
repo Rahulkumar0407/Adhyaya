@@ -21,7 +21,7 @@ const MentorProfileSettings = () => {
         currentRole: '',
         yearsOfExperience: 0,
         expertise: [],
-        ratePerMinute: 5,
+        ratePerMinute: 9,
         linkedinUrl: '',
         portfolioUrl: '',
         upiId: ''

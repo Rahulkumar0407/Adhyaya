@@ -203,4 +203,47 @@ router.post('/topup/test', protect, async (req, res) => {
     }
 });
 
+// Charge for AI Mock Interview (100 points)
+router.post('/interview/charge', protect, async (req, res) => {
+    try {
+        const { interviewType } = req.body;
+        const INTERVIEW_COST = 100; // 100 babua points
+
+        // Find or create wallet
+        let wallet = await Wallet.findOne({ user: req.user._id });
+        if (!wallet) {
+            wallet = new Wallet({ user: req.user._id });
+            await wallet.save();
+        }
+
+        // Check balance
+        if (!wallet.hasSufficientBalance(INTERVIEW_COST)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Insufficient balance. You need 100 babua points to start an AI interview.',
+                required: INTERVIEW_COST,
+                currentBalance: wallet.balance
+            });
+        }
+
+        // Charge for interview
+        await wallet.chargeForInterview(INTERVIEW_COST, interviewType || 'General');
+
+        res.json({
+            success: true,
+            message: 'Interview session started',
+            data: {
+                charged: INTERVIEW_COST,
+                newBalance: wallet.balance
+            }
+        });
+    } catch (error) {
+        console.error('Error charging for interview:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Error processing interview charge'
+        });
+    }
+});
+
 export default router;

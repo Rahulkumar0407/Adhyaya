@@ -214,10 +214,10 @@ const TrustBadge = ({ icon: Icon, title, description }) => (
 // ===== MAIN COMPONENT =====
 const MentorConnect = () => {
     const featuredMentors = [
-        { id: 1, name: 'Rahul Sharma', avatar: 'RS', headline: 'SDE @ Google', expertise: ['DSA', 'System Design', 'Python'], rating: 4.9, reviews: 127, rate: 5, isOnline: true, isVerified: true },
-        { id: 2, name: 'Priya Singh', avatar: 'PS', headline: 'Backend Lead @ Flipkart', expertise: ['Node.js', 'MongoDB', 'AWS'], rating: 4.8, reviews: 89, rate: 4, isOnline: true, isVerified: true },
-        { id: 3, name: 'Amit Kumar', avatar: 'AK', headline: 'SDE-2 @ Microsoft', expertise: ['DSA', 'C++', 'Interview Prep'], rating: 4.9, reviews: 156, rate: 6, isOnline: false, isVerified: true },
-        { id: 4, name: 'Sneha Patel', avatar: 'SP', headline: 'Full Stack @ Razorpay', expertise: ['React', 'Node.js', 'PostgreSQL'], rating: 4.7, reviews: 64, rate: 3, isOnline: true, isVerified: true },
+        { id: 1, name: 'Rahul Sharma', avatar: 'RS', headline: 'SDE @ Google', expertise: ['DSA', 'System Design', 'Python'], rating: 4.9, reviews: 127, rate: 15, isOnline: true, isVerified: true },
+        { id: 2, name: 'Priya Singh', avatar: 'PS', headline: 'Backend Lead @ Flipkart', expertise: ['Node.js', 'MongoDB', 'AWS'], rating: 4.8, reviews: 89, rate: 12, isOnline: true, isVerified: true },
+        { id: 3, name: 'Amit Kumar', avatar: 'AK', headline: 'SDE-2 @ Microsoft', expertise: ['DSA', 'C++', 'Interview Prep'], rating: 4.9, reviews: 156, rate: 20, isOnline: false, isVerified: true },
+        { id: 4, name: 'Sneha Patel', avatar: 'SP', headline: 'Full Stack @ Razorpay', expertise: ['React', 'Node.js', 'PostgreSQL'], rating: 4.7, reviews: 64, rate: 9, isOnline: true, isVerified: true },
     ];
 
     return (
@@ -251,7 +251,7 @@ const MentorConnect = () => {
 
                         <p className="text-orange-100/60 text-lg md:text-xl max-w-3xl mx-auto mb-10 leading-relaxed">
                             <span className="block text-red-400 font-bold mb-2">⚠️ Don't let a bad interview cost you a ₹20 LPA offer.</span>
-                            Instant guidance from mentors at <span className="text-orange-400 font-bold">Google, Microsoft</span> starting at just ₹3/min.
+                            Instant guidance from mentors at <span className="text-orange-400 font-bold">Google, Microsoft</span> starting at just ₹9/min.
                             <span className="text-white font-bold ml-2">Pay only for what you use.</span>
                         </p>
 

@@ -52,6 +52,7 @@ function FloatingCodeSnippet({ code, color, index }) {
 
         // Phase 2: Perpetual Float (Keep Flowing)
         const startFloating = () => {
+            if (!snippetRef.current) return;
             // Random point anywhere on screen
             const floatX = (Math.random() - 0.5) * window.innerWidth * 0.9;
             const floatY = (Math.random() - 0.5) * window.innerHeight * 0.8;

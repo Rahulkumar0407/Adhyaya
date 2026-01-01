@@ -16,7 +16,7 @@ import axios from 'axios';
 
 // Internal Component: Lecture Note Viewer
 function LectureNoteViewer({ url, noteOptions }) {
-    const [scale, setScale] = useState(1);
+    const [scale, setScale] = useState(1); // Default 100% - not zoomed in
     const [selectedNoteIndex, setSelectedNoteIndex] = useState(0);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -26,8 +26,17 @@ function LectureNoteViewer({ url, noteOptions }) {
 
     const displayUrl = noteOptions && noteOptions.length > 0 ? noteOptions[selectedNoteIndex].url : url;
 
+    // Preset zoom levels
+    const zoomPresets = [
+        { label: '100%', value: 1 },
+        { label: '200%', value: 2 },
+        { label: '400%', value: 4 },
+        { label: '700%', value: 7 },
+    ];
+
     const zoomIn = () => setScale(s => Math.min(10, +(s + 0.5).toFixed(2)));
     const zoomOut = () => setScale(s => Math.max(0.25, +(s - 0.5).toFixed(2)));
+    const setZoomPreset = (value) => { setScale(value); setPosition({ x: 0, y: 0 }); };
     const reset = () => { setScale(1); setPosition({ x: 0, y: 0 }); };
 
     const handleWheel = useCallback((e) => {
@@ -87,11 +96,31 @@ function LectureNoteViewer({ url, noteOptions }) {
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                    <button onClick={zoomOut} className="px-3 py-2 rounded-lg bg-[#252525] border border-gray-700 hover:bg-[#303030] text-gray-300 font-bold">−</button>
-                    <span className="px-3 py-2 rounded-lg bg-[#252525] border border-gray-700 text-orange-400 min-w-[60px] text-center text-sm">{Math.round(scale * 100)}%</span>
-                    <button onClick={zoomIn} className="px-3 py-2 rounded-lg bg-[#252525] border border-gray-700 hover:bg-[#303030] text-gray-300 font-bold">+</button>
-                    <button onClick={reset} className="px-3 py-2 rounded-lg bg-[#252525] border border-gray-700 hover:bg-[#303030] text-gray-300 text-sm">Reset</button>
+                <div className="flex items-center gap-2 flex-wrap">
+                    {/* Manual zoom controls */}
+                    <div className="flex items-center gap-1">
+                        <button onClick={zoomOut} className="px-3 py-2 rounded-lg bg-[#252525] border border-gray-700 hover:bg-[#303030] text-gray-300 font-bold">−</button>
+                        <span className="px-3 py-2 rounded-lg bg-[#252525] border border-gray-700 text-orange-400 min-w-[60px] text-center text-sm">{Math.round(scale * 100)}%</span>
+                        <button onClick={zoomIn} className="px-3 py-2 rounded-lg bg-[#252525] border border-gray-700 hover:bg-[#303030] text-gray-300 font-bold">+</button>
+                    </div>
+
+                    {/* Preset zoom buttons */}
+                    <div className="flex items-center gap-1 ml-2">
+                        {zoomPresets.map((preset) => (
+                            <button
+                                key={preset.value}
+                                onClick={() => setZoomPreset(preset.value)}
+                                className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${Math.round(scale * 100) === Math.round(preset.value * 100)
+                                    ? 'bg-orange-500 text-white'
+                                    : 'bg-[#252525] border border-gray-700 hover:bg-[#303030] text-gray-400 hover:text-white'
+                                    }`}
+                            >
+                                {preset.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    <button onClick={reset} className="px-3 py-2 rounded-lg bg-[#252525] border border-gray-700 hover:bg-[#303030] text-gray-300 text-sm ml-2">Reset</button>
                 </div>
                 <div className="flex items-center gap-2">
                     {noteOptions && noteOptions.length > 1 && (
@@ -363,6 +392,7 @@ export default function DSAItemDetail() {
                         <div className="relative group aspect-video rounded-2xl overflow-hidden border border-gray-800 shadow-2xl bg-black">
                             {ctoClip?.videoId ? (
                                 <CtoBhaiyaClipPlayer
+                                    key={`${ctoClip.videoId}-${ctoClip.startTime}-${ctoClip.endTime}`}
                                     videoId={ctoClip.videoId}
                                     startTime={ctoClip.startTime}
                                     endTime={ctoClip.endTime}
@@ -511,7 +541,7 @@ export default function DSAItemDetail() {
                                             if (primaryNote.toLowerCase().includes('.svg') || (Array.isArray(primaryNote) && primaryNote[0].includes('.svg'))) {
                                                 const url = Array.isArray(primaryNote) ? primaryNote[0] : primaryNote;
                                                 const rawUrl = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
-                                                return <LectureNoteViewer url={rawUrl} noteOptions={noteOptions} />;
+                                                return <LectureNoteViewer key={`${item?.slug}-${rawUrl}`} url={rawUrl} noteOptions={noteOptions} />;
                                             }
                                             return <a href={primaryNote} target="_blank" className="text-orange-400 underline">Open Notes</a>;
                                         }

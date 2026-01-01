@@ -230,12 +230,24 @@ router.get('/google', passport.authenticate('google', {
 // @route   GET /api/auth/google/callback
 // @desc    Google OAuth callback
 // @access  Public
-router.get('/google/callback',
-    passport.authenticate('google', { session: false }),
-    async (req, res) => {
-        try {
-            const user = req.user;
+router.get('/google/callback', (req, res, next) => {
+    passport.authenticate('google', { session: false }, async (err, user, info) => {
+        const frontendUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
+        if (err) {
+            console.error('Google Auth Error:', err);
+            // Handle specific errors
+            let errorMsg = 'auth_failed';
+            if (err.message) errorMsg = encodeURIComponent(err.message);
+            return res.redirect(`${frontendUrl}/login?error=${errorMsg}`);
+        }
+
+        if (!user) {
+            console.error('Google Auth Failed: No user returned');
+            return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+        }
+
+        try {
             // Update streak
             user.updateStreak();
 
@@ -247,13 +259,12 @@ router.get('/google/callback',
             await user.save();
 
             // Redirect to frontend with tokens
-            const frontendUrl = process.env.CLIENT_URL || 'http://localhost:5173';
             res.redirect(`${frontendUrl}/auth-success?accessToken=${accessToken}&refreshToken=${refreshToken}`);
         } catch (error) {
-            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-            res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+            console.error('Token generation error:', error);
+            res.redirect(`${frontendUrl}/login?error=token_generation_failed`);
         }
-    }
-);
+    })(req, res, next);
+});
 
 export default router;

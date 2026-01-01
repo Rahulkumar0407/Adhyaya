@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const transactionSchema = new mongoose.Schema({
     type: {
         type: String,
-        enum: ['topup', 'call_charge', 'doubt_charge', 'refund', 'bonus', 'withdrawal'],
+        enum: ['topup', 'call_charge', 'doubt_charge', 'interview_charge', 'refund', 'bonus', 'withdrawal'],
         required: true
     },
     amount: {
@@ -178,6 +178,28 @@ walletSchema.methods.chargeForDoubt = async function (amount, doubtId) {
         amount: -amount,
         description: `Doubt resolution charge: ₹${amount}`,
         doubtId: doubtId,
+        status: 'completed',
+        balanceAfter: this.balance - amount
+    };
+
+    this.balance -= amount;
+    this.totalSpent += amount;
+    this.transactions.push(transaction);
+
+    await this.save();
+    return transaction;
+};
+
+// Deduct for AI mock interview
+walletSchema.methods.chargeForInterview = async function (amount, interviewType) {
+    if (this.balance < amount) {
+        throw new Error('Insufficient balance');
+    }
+
+    const transaction = {
+        type: 'interview_charge',
+        amount: -amount,
+        description: `AI Mock Interview (${interviewType}): ${amount} points`,
         status: 'completed',
         balanceAfter: this.balance - amount
     };

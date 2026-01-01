@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import * as THREE from 'three';
 import {
     Home, Bell, Gift, Mic, Video, Clock, ArrowRight, Play, Users,
-    CheckCircle, Star, Target, Sparkles, MessageSquare, Brain, Zap, Lock, RotateCcw
+    CheckCircle, Star, Target, Sparkles, MessageSquare, Brain, Zap, Lock, RotateCcw, Wallet, AlertCircle
 } from 'lucide-react';
 import InterviewSession from '../components/interview/InterviewSession';
 import InterviewResults from '../components/interview/InterviewResults';
@@ -231,10 +232,63 @@ export default function MockInterview() {
     const [interviewResults, setInterviewResults] = useState(null);
     const [showBookingModal, setShowBookingModal] = useState(false);
 
-    const startInterview = () => {
+    // Wallet/Points state
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [isLoadingWallet, setIsLoadingWallet] = useState(false);
+    const [isCharging, setIsCharging] = useState(false);
+    const [walletError, setWalletError] = useState('');
+    const INTERVIEW_COST = 100; // 100 babua points
+
+    // Fetch wallet balance on mount
+    useEffect(() => {
+        const fetchWalletBalance = async () => {
+            if (!user) return;
+            setIsLoadingWallet(true);
+            try {
+                const response = await api.get('/wallet');
+                if (response.data.success) {
+                    setWalletBalance(response.data.data.balance);
+                }
+            } catch (error) {
+                console.error('Error fetching wallet:', error);
+            } finally {
+                setIsLoadingWallet(false);
+            }
+        };
+        fetchWalletBalance();
+    }, [user]);
+
+    const startInterview = async () => {
         if (!selectedType) return;
         if (selectedType === 'custom' && !customRole.trim()) return;
-        setInterviewState('session');
+
+        // Check if user has enough points
+        if (walletBalance < INTERVIEW_COST) {
+            setWalletError(`Insufficient balance! You need ${INTERVIEW_COST} babua points. Current: ${walletBalance} points.`);
+            return;
+        }
+
+        setIsCharging(true);
+        setWalletError('');
+
+        try {
+            // Charge for interview
+            const response = await api.post('/wallet/interview/charge', {
+                interviewType: selectedType === 'custom' ? customRole : selectedType
+            });
+
+            if (response.data.success) {
+                setWalletBalance(response.data.data.newBalance);
+                setInterviewState('session');
+            } else {
+                setWalletError(response.data.message || 'Failed to charge for interview');
+            }
+        } catch (error) {
+            console.error('Error charging for interview:', error);
+            setWalletError(error.response?.data?.message || 'Failed to start interview. Please try again.');
+        } finally {
+            setIsCharging(false);
+        }
     };
 
     const handleInterviewEnd = () => {
@@ -450,25 +504,55 @@ export default function MockInterview() {
                     <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
 
                     <div className="relative z-10">
-                        <div className="inline-flex items-center gap-3 px-5 py-2 bg-emerald-500/10 text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-widest mb-8 border border-emerald-500/20 shadow-2xl">
-                            <Sparkles className="w-4 h-4" />
-                            100% FREE FOREVER
+                        {/* Wallet Balance & Cost Badge */}
+                        <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+                            <div className="inline-flex items-center gap-3 px-5 py-2 bg-amber-500/10 text-amber-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-500/20 shadow-2xl">
+                                <Wallet className="w-4 h-4" />
+                                Cost: {INTERVIEW_COST} Points
+                            </div>
+                            <div className={`inline-flex items-center gap-3 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-2xl ${walletBalance >= INTERVIEW_COST
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                }`}>
+                                <Sparkles className="w-4 h-4" />
+                                {isLoadingWallet ? 'Loading...' : `Balance: ${walletBalance} Points`}
+                            </div>
                         </div>
+
+                        {/* Error Message */}
+                        {walletError && (
+                            <div className="mb-6 px-6 py-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center gap-3 max-w-xl mx-auto">
+                                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                                <span className="text-red-300 text-sm font-medium">{walletError}</span>
+                                <Link to="/wallet" className="text-amber-400 hover:text-amber-300 text-sm font-bold ml-2 underline">
+                                    Add Points →
+                                </Link>
+                            </div>
+                        )}
 
                         <h3 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight">Ready to level up?</h3>
                         <p className="text-slate-400 mb-10 max-w-xl mx-auto text-lg font-medium leading-relaxed">
-                            Practicing with AI increases your success rate by <span className="text-cyan-400 font-black">300%</span>. Your dream job is waiting.
+                            Practicing with AI increases your success rate by <span className="text-cyan-400 font-black">300%</span>. Each session costs <span className="text-amber-400 font-bold">{INTERVIEW_COST} babua points</span>.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
                             <button
                                 onClick={startInterview}
-                                disabled={!selectedType || (selectedType === 'custom' && !customRole.trim())}
+                                disabled={!selectedType || (selectedType === 'custom' && !customRole.trim()) || isCharging || walletBalance < INTERVIEW_COST}
                                 className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black uppercase tracking-widest rounded-[2rem] hover:shadow-[0_0_40px_rgba(6,182,212,0.4)] hover:scale-105 active:scale-[0.95] transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
-                                <Video className="w-6 h-6" />
-                                {selectedType ? `Start ${selectedType === 'custom' ? customRole || 'Custom' : selectedType.toUpperCase()} Session` : 'Select A Round'}
-                                <ArrowRight className="w-6 h-6" />
+                                {isCharging ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Charging Points...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Video className="w-6 h-6" />
+                                        {selectedType ? `Start ${selectedType === 'custom' ? customRole || 'Custom' : selectedType.toUpperCase()} (${INTERVIEW_COST} pts)` : 'Select A Round'}
+                                        <ArrowRight className="w-6 h-6" />
+                                    </>
+                                )}
                             </button>
                             <Link
                                 to="/dashboard"

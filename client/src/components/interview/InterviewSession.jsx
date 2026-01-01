@@ -31,6 +31,7 @@ export default function InterviewSession({
     const timerRef = useRef(null);
     const chatEndRef = useRef(null);
     const startedRef = useRef(false);
+    const sessionEndedRef = useRef(false);
 
     // Speech states
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -60,6 +61,8 @@ export default function InterviewSession({
         startInterview();
 
         return () => {
+            // Mark session as ended to prevent any pending speech
+            sessionEndedRef.current = true;
             speechService.stopSpeaking();
             speechService.stopListening();
             if (timerRef.current) clearInterval(timerRef.current);
@@ -101,7 +104,7 @@ export default function InterviewSession({
             setIsThinking(false);
             addAIMessage(introMessage);
 
-            if (soundEnabled) {
+            if (soundEnabled && !sessionEndedRef.current) {
                 await speechService.speak(introMessage);
             }
 
@@ -136,7 +139,7 @@ export default function InterviewSession({
                 setCurrentStep('question');
             }
 
-            if (soundEnabled) {
+            if (soundEnabled && !sessionEndedRef.current) {
                 await speechService.speak(question);
             }
         } catch (err) {
@@ -176,7 +179,7 @@ export default function InterviewSession({
             if (evaluation.followUp) {
                 addAIMessage(evaluation.followUp);
                 setCurrentQuestion(evaluation.followUp);
-                if (soundEnabled) await speechService.speak(evaluation.followUp);
+                if (soundEnabled && !sessionEndedRef.current) await speechService.speak(evaluation.followUp);
             } else {
                 // If no follow-up, ask a new main question or end if enough questions
                 const aiMessages = conversation.filter(m => m.role === 'ai').length;
@@ -218,7 +221,7 @@ export default function InterviewSession({
 
             setIsThinking(false);
             addAIMessage(evaluation.feedback);
-            if (soundEnabled) await speechService.speak(evaluation.feedback);
+            if (soundEnabled && !sessionEndedRef.current) await speechService.speak(evaluation.feedback);
 
             // Move to next problem or end
             if (problemResults.length >= 2) {
@@ -236,7 +239,7 @@ export default function InterviewSession({
     const handleTimeUp = () => {
         const msg = "Time's up! Let's wrap up this session.";
         addAIMessage(msg);
-        if (soundEnabled) speechService.speak(msg);
+        if (soundEnabled && !sessionEndedRef.current) speechService.speak(msg);
         setTimeout(() => endInterview(), 2000);
     };
 
@@ -253,8 +256,18 @@ export default function InterviewSession({
     };
 
     const endInterview = () => {
-        setCurrentStep('complete');
+        // Immediately stop all speech and mark session as ended
+        sessionEndedRef.current = true;
         speechService.stopSpeaking();
+        speechService.stopListening();
+        setCurrentStep('complete');
+        setIsListening(false);
+
+        // Clear timer
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
 
         const results = {
             overallScore: overallScore || 70,
@@ -267,13 +280,13 @@ export default function InterviewSession({
             improvements: ['Practice more mock interviews', 'Focus on edge cases']
         };
 
-        const msg = `Great job! You've completed the interview. Your overall performance score is ${results.overallScore}. Let's look at your detailed feedback.`;
+        const msg = `Great job! You've completed the interview. Your overall performance score is ${results.overallScore}.`;
         addAIMessage(msg);
-        if (soundEnabled) speechService.speak(msg);
+        // Don't speak the final message since user clicked end - just show results
 
         setTimeout(() => {
             if (onResults) onResults(results);
-        }, 4000);
+        }, 1500);
     };
 
     const formatTime = (seconds) => {
@@ -446,6 +459,54 @@ export default function InterviewSession({
                                 <Zap className="w-4 h-4 text-amber-400" />
                                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Interactive Code Editor</span>
                             </div>
+
+                            {/* Voice Input Section for DSA */}
+                            {currentStep !== 'complete' && (
+                                <div className="px-6 py-4 border-b border-white/5 bg-white/5">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Mic className="w-4 h-4 text-cyan-400" />
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Explain Your Approach (Voice/Text)</span>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <button
+                                            onClick={toggleListening}
+                                            className={`p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${isListening
+                                                ? 'bg-red-500 text-white animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.4)]'
+                                                : 'bg-white/10 text-slate-400 hover:text-white border border-white/10 hover:border-cyan-500/50'
+                                                }`}
+                                            title={isListening ? "Stop Recording" : "Start Voice Input"}
+                                        >
+                                            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                                        </button>
+                                        <div className="flex-1 relative">
+                                            <textarea
+                                                value={userInput}
+                                                onChange={(e) => setUserInput(e.target.value)}
+                                                placeholder={isListening ? "🎤 Listening... Speak your approach" : "Explain your thought process here (or use mic)..."}
+                                                rows={2}
+                                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 resize-none"
+                                            />
+                                            {isListening && (
+                                                <div className="absolute right-3 top-3 flex gap-1">
+                                                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></span>
+                                                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={handleSendMessage}
+                                            disabled={!userInput.trim() || isThinking}
+                                            className="p-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl hover:shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all disabled:opacity-30 flex-shrink-0"
+                                            title="Send Explanation"
+                                        >
+                                            <Send className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-2">💡 Tip: Explain your approach before coding — just like in a real interview!</p>
+                                </div>
+                            )}
+
                             <div className="flex-1 p-1">
                                 <CodeEditor
                                     problem={{ description: currentQuestion }}

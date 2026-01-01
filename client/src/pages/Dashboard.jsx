@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as THREE from 'three';
 import {
@@ -140,6 +140,7 @@ function AnimatedBackground() {
 
 export default function Dashboard() {
     const { user, token } = useAuth();
+    const navigate = useNavigate();
     const [streak, setStreak] = useState(0);
     const [randomQuote] = useState(() => quotes[Math.floor(Math.random() * quotes.length)]);
 
@@ -149,6 +150,13 @@ export default function Dashboard() {
     const [dsaProgress, setDSAProgress] = useState(0);
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+    // Redirect mentors to mentor dashboard
+    useEffect(() => {
+        if (user?.role === 'mentor') {
+            navigate('/mentor-dashboard', { replace: true });
+        }
+    }, [user, navigate]);
 
     // Load course progress from localStorage
     useEffect(() => {
@@ -333,7 +341,7 @@ export default function Dashboard() {
                                                 <Play className="w-5 h-5" fill="currentColor" />
                                                 Shuru Karein
                                             </Link>
-                                            <Link to="/syllabus/dsa" className="inline-flex items-center gap-2 px-6 py-3 bg-gray-700/60 text-white font-semibold rounded-full border border-gray-600 hover:bg-gray-700 hover:border-lime-500/30 hover:scale-105 transition-all">
+                                            <Link to="/dsa-syllabus" className="inline-flex items-center gap-2 px-6 py-3 bg-gray-700/60 text-white font-semibold rounded-full border border-gray-600 hover:bg-gray-700 hover:border-lime-500/30 hover:scale-105 transition-all">
                                                 <BookOpen className="w-5 h-5" />
                                                 Syllabus
                                             </Link>

@@ -71,6 +71,7 @@ class SpeechService {
 
             // Stop any current speech
             this.synthesis.cancel();
+            this.cancelled = false;
 
             // Split text into smaller chunks for more natural pauses (at commas, periods)
             const chunks = text.match(/[^.!,?]+[.!,?]?/g) || [text];
@@ -78,10 +79,11 @@ class SpeechService {
             let currentChunk = 0;
 
             const speakNextChunk = () => {
-                if (currentChunk >= chunks.length) {
+                // Check if cancelled before speaking next chunk
+                if (this.cancelled || currentChunk >= chunks.length) {
                     this.isSpeaking = false;
                     if (this.onSpeakingChange) this.onSpeakingChange(false);
-                    if (onEnd) onEnd();
+                    if (onEnd && !this.cancelled) onEnd();
                     resolve();
                     return;
                 }
@@ -98,11 +100,19 @@ class SpeechService {
                 utterance.volume = 0.9; // Slightly lower for "soft-spoken" effect
 
                 utterance.onstart = () => {
-                    this.isSpeaking = true;
-                    if (this.onSpeakingChange) this.onSpeakingChange(true);
+                    if (!this.cancelled) {
+                        this.isSpeaking = true;
+                        if (this.onSpeakingChange) this.onSpeakingChange(true);
+                    }
                 };
 
                 utterance.onend = () => {
+                    if (this.cancelled) {
+                        this.isSpeaking = false;
+                        if (this.onSpeakingChange) this.onSpeakingChange(false);
+                        resolve();
+                        return;
+                    }
                     currentChunk++;
                     // Add a small natural pause between sentences
                     setTimeout(speakNextChunk, 250);
@@ -124,6 +134,8 @@ class SpeechService {
 
     // Stop speaking
     stopSpeaking() {
+        // Set cancelled flag to stop any chunked speech in progress
+        this.cancelled = true;
         if (this.synthesis) {
             this.synthesis.cancel();
             this.isSpeaking = false;

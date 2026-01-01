@@ -51,7 +51,7 @@ const mentorSchema = new mongoose.Schema({
     ratePerMinute: {
         type: Number,
         required: [true, 'Rate per minute is required'],
-        min: [1, 'Rate must be at least ₹1/min'],
+        min: [9, 'Rate must be at least ₹9/min'],
         max: [100, 'Rate cannot exceed ₹100/min']
     },
     minCallDuration: {

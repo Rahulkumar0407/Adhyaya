@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
@@ -16,6 +16,26 @@ export default function Login() {
 
     const { login, logout } = useAuth(); // Destructure logout ensuring it's available
     const navigate = useNavigate();
+
+    // Check for error in URL (from OAuth redirect)
+    useEffect(() => {
+        const queryParams = new URLSearchParams(window.location.search);
+        const errorMsg = queryParams.get('error');
+        if (errorMsg) {
+            let message = 'Login failed';
+            switch (errorMsg) {
+                case 'oauth_failed': message = 'Google login failed. Please try again.'; break;
+                case 'auth_failed': message = 'Authentication failed.'; break;
+                case 'missing_tokens': message = 'Could not retrieve login tokens.'; break;
+                case 'activation_failed': message = 'Mentor account activation failed.'; break;
+                default: message = errorMsg.replace(/_/g, ' ');
+            }
+            setError(message);
+            toast.error(message);
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

@@ -146,7 +146,7 @@ const MentorProfile = () => {
                         { company: 'Microsoft', role: 'SDE Intern', duration: '2021 - 2022', isCurrent: false },
                         { company: 'Amazon', role: 'SDE Intern', duration: '2020', isCurrent: false }
                     ],
-                    ratePerMinute: 5,
+                    ratePerMinute: 9,
                     minCallDuration: 5,
                     rating: 4.9,
                     totalReviews: 127,

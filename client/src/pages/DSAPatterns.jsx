@@ -338,16 +338,17 @@ export default function DSAPatterns() {
 
                                                             <div className="flex items-center gap-4 opacity-0 group-hover/item:opacity-100 transition-opacity">
                                                                 {item.externalLink && (
-                                                                    <a
-                                                                        href={item.externalLink}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        onClick={(e) => e.stopPropagation()}
-                                                                        className="p-2 text-gray-500 hover:text-white transition-colors"
+                                                                    <span
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            window.open(item.externalLink, '_blank', 'noopener,noreferrer');
+                                                                        }}
+                                                                        className="p-2 text-gray-500 hover:text-white transition-colors cursor-pointer"
                                                                         title="Solve on LeetCode"
                                                                     >
                                                                         <ExternalLink className="w-5 h-5" />
-                                                                    </a>
+                                                                    </span>
                                                                 )}
                                                                 <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400">
                                                                     <ChevronRight className="w-4 h-4" />

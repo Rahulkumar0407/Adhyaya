@@ -169,7 +169,7 @@ const CallRoom = () => {
                 setCallData({
                     _id: callId,
                     roomId: `call_${callId}`,
-                    ratePerMinute: 5,
+                    ratePerMinute: 9,
                     mentor: {
                         user: { name: 'Rahul Sharma' },
                         headline: 'SDE @ Google'
@@ -355,7 +355,7 @@ const CallRoom = () => {
         timerRef.current = setInterval(() => {
             setDuration(prev => {
                 const newDuration = prev + 1;
-                setCost(Math.ceil(newDuration / 60) * (callData?.ratePerMinute || 5));
+                setCost(Math.ceil(newDuration / 60) * (callData?.ratePerMinute || 9));
                 return newDuration;
             });
         }, 1000);
@@ -529,7 +529,7 @@ const CallRoom = () => {
 
                 {/* Per-minute rate reminder */}
                 <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm">
-                    ₹{callData?.ratePerMinute || 5}/min
+                    ₹{callData?.ratePerMinute || 9}/min
                 </div>
             </div>
 

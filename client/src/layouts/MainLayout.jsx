@@ -11,7 +11,12 @@ export default function MainLayout({ children }) {
 
     // Also hide if path starts with /call/ (video call room usually full screen)
     const shouldHideNavbar = hideNavbarPaths.includes(location.pathname) || location.pathname.startsWith('/call/');
-    const showNavbar = user && !loading && !shouldHideNavbar;
+
+    // Always show navbar for mock-interview page (it serves as a landing page too)
+    const alwaysShowNavbarPaths = ['/mock-interview'];
+    const shouldForceShowNavbar = alwaysShowNavbarPaths.includes(location.pathname);
+
+    const showNavbar = (user || shouldForceShowNavbar) && !loading && !shouldHideNavbar;
 
     return (
         <div className="min-h-screen bg-[#0b0f14]">
