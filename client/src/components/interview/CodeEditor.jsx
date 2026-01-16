@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
-import { Play, Send, RotateCcw, Code2 } from 'lucide-react';
+import { Play, Send, RotateCcw, Code2, ChevronDown, ChevronUp, FileCode } from 'lucide-react';
 
-// Code Editor for DSA Interview
+// Enhanced Code Editor for DSA Interview with scrollable problem panel
 export default function CodeEditor({
     problem = null,
     onSubmit,
@@ -12,6 +12,7 @@ export default function CodeEditor({
     const [code, setCode] = useState('');
     const [language, setLanguage] = useState('cpp');
     const [isRunning, setIsRunning] = useState(false);
+    const [problemExpanded, setProblemExpanded] = useState(true);
 
     const languages = [
         {
@@ -42,7 +43,28 @@ public class Main {
         Solution sol = new Solution();
         // Test your solution
     }
-}` }
+}` },
+        {
+            id: 'python', name: 'Python', template: `class Solution:
+    def solve(self):
+        # Your solution here
+        pass
+
+if __name__ == "__main__":
+    sol = Solution()
+    # Test your solution
+` },
+        {
+            id: 'javascript', name: 'JavaScript', template: `class Solution {
+    // Your solution here
+    solve() {
+        
+    }
+}
+
+// Test your solution
+const sol = new Solution();
+` }
     ];
 
     // Initialize with template when language changes
@@ -55,8 +77,10 @@ public class Main {
     };
 
     // Set initial template
-    useState(() => {
-        setCode(languages[0].template);
+    useEffect(() => {
+        if (!code) {
+            setCode(languages[0].template);
+        }
     }, []);
 
     const handleRun = async () => {
@@ -80,95 +104,159 @@ public class Main {
         setCode(template);
     };
 
-    return (
-        <div className="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden">
-            {/* Problem Display */}
-            {problem && (
-                <div className="p-4 border-b border-slate-700 bg-slate-800/50">
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${problem.difficulty === 'Easy' ? 'bg-emerald-500/20 text-emerald-400' :
-                                problem.difficulty === 'Medium' ? 'bg-amber-500/20 text-amber-400' :
-                                    'bg-red-500/20 text-red-400'
-                            }`}>
-                            {problem.difficulty}
-                        </span>
-                        <span className="text-slate-400 text-sm">{problem.timeLimit} mins</span>
-                    </div>
-                    <h3 className="text-lg font-bold text-white mb-2">{problem.title}</h3>
-                    <p className="text-slate-300 text-sm whitespace-pre-wrap">{problem.description}</p>
+    const getMonacoLanguage = (lang) => {
+        const map = {
+            'cpp': 'cpp',
+            'java': 'java',
+            'python': 'python',
+            'javascript': 'javascript'
+        };
+        return map[lang] || 'cpp';
+    };
 
-                    {problem.examples && (
-                        <div className="mt-4 space-y-2">
-                            <div className="text-sm font-medium text-slate-400">Examples:</div>
-                            {problem.examples.map((example, idx) => (
-                                <div key={idx} className="bg-slate-900/50 rounded-lg p-3 text-sm">
-                                    <div className="text-cyan-400">Input: <span className="text-slate-300">{example.input}</span></div>
-                                    <div className="text-emerald-400">Output: <span className="text-slate-300">{example.output}</span></div>
-                                    {example.explanation && (
-                                        <div className="text-slate-500 mt-1">Explanation: {example.explanation}</div>
-                                    )}
+    return (
+        <div className="flex flex-col h-full min-h-[400px] bg-gradient-to-b from-[#0d1117] to-[#161b22] rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+
+            {/* Problem Statement Panel - Collapsible & Scrollable */}
+            {problem && (
+                <div className={`flex-shrink-0 border-b border-white/10 transition-all duration-300 ${problemExpanded ? 'max-h-[200px]' : 'max-h-12'}`}>
+                    {/* Problem Header - Always visible */}
+                    <button
+                        onClick={() => setProblemExpanded(!problemExpanded)}
+                        className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 hover:from-purple-500/20 hover:to-cyan-500/20 transition-all"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                <FileCode className="w-4 h-4 text-purple-400" />
+                            </div>
+                            <div className="text-left">
+                                <span className="text-white font-semibold text-sm">Problem Statement</span>
+                                {problem.difficulty && (
+                                    <span className={`ml-3 px-2 py-0.5 text-xs font-bold rounded-full ${problem.difficulty === 'Easy' ? 'bg-emerald-500/20 text-emerald-400' :
+                                        problem.difficulty === 'Medium' ? 'bg-amber-500/20 text-amber-400' :
+                                            'bg-red-500/20 text-red-400'
+                                        }`}>
+                                        {problem.difficulty}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        {problemExpanded ? (
+                            <ChevronUp className="w-5 h-5 text-gray-400" />
+                        ) : (
+                            <ChevronDown className="w-5 h-5 text-gray-400" />
+                        )}
+                    </button>
+
+                    {/* Problem Content - Scrollable */}
+                    {problemExpanded && (
+                        <div className="p-4 overflow-y-auto max-h-[150px] custom-scrollbar bg-[#0d1117]/50">
+                            <div className="prose prose-invert prose-sm max-w-none">
+                                <p className="text-gray-300 text-sm whitespace-pre-wrap leading-relaxed">
+                                    {problem.description}
+                                </p>
+                            </div>
+
+                            {problem.examples && problem.examples.length > 0 && (
+                                <div className="mt-4 space-y-3">
+                                    <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Examples</div>
+                                    {problem.examples.map((example, idx) => (
+                                        <div key={idx} className="bg-black/30 rounded-xl p-3 border border-white/5">
+                                            <div className="flex items-start gap-2 mb-1">
+                                                <span className="text-cyan-400 text-xs font-medium">Input:</span>
+                                                <code className="text-gray-300 text-xs font-mono">{example.input}</code>
+                                            </div>
+                                            <div className="flex items-start gap-2">
+                                                <span className="text-emerald-400 text-xs font-medium">Output:</span>
+                                                <code className="text-gray-300 text-xs font-mono">{example.output}</code>
+                                            </div>
+                                            {example.explanation && (
+                                                <div className="mt-2 pt-2 border-t border-white/5 text-gray-500 text-xs">
+                                                    💡 {example.explanation}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
+
+                            {problem.constraints && (
+                                <div className="mt-4">
+                                    <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Constraints</div>
+                                    <ul className="text-gray-400 text-xs space-y-1">
+                                        {problem.constraints.map((c, i) => (
+                                            <li key={i} className="flex items-center gap-2">
+                                                <span className="w-1 h-1 bg-gray-500 rounded-full" />
+                                                <code>{c}</code>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
             )}
 
             {/* Editor Toolbar */}
-            <div className="flex items-center justify-between p-3 border-b border-slate-700 bg-slate-800/30">
-                <div className="flex items-center gap-3">
-                    <Code2 className="w-5 h-5 text-cyan-400" />
-                    <select
-                        value={language}
-                        onChange={(e) => handleLanguageChange(e.target.value)}
-                        className="bg-slate-700 text-white text-sm px-3 py-1.5 rounded-lg border border-slate-600 focus:outline-none focus:border-cyan-500"
-                    >
+            <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-[#161b22]">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <Code2 className="w-4 h-4 text-cyan-400" />
+                        <span className="text-xs text-gray-500 uppercase tracking-wider font-medium">Editor</span>
+                    </div>
+
+                    {/* Language Selector with nice styling */}
+                    <div className="flex items-center gap-1 bg-black/30 rounded-lg p-1">
                         {languages.map(lang => (
-                            <option key={lang.id} value={lang.id}>{lang.name}</option>
+                            <button
+                                key={lang.id}
+                                onClick={() => handleLanguageChange(lang.id)}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${language === lang.id
+                                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                                    : 'text-gray-500 hover:text-gray-300'
+                                    }`}
+                            >
+                                {lang.name}
+                            </button>
                         ))}
-                    </select>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleReset}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                        className="p-2 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition-all"
                         title="Reset Code"
                     >
                         <RotateCcw className="w-4 h-4" />
                     </button>
-                    <button
-                        onClick={handleRun}
-                        disabled={isRunning || !code.trim()}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                    >
-                        <Play className="w-4 h-4" fill="currentColor" />
-                        {isRunning ? 'Running...' : 'Run'}
-                    </button>
+
                     <button
                         onClick={handleSubmit}
                         disabled={disabled || !code.trim()}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-bold rounded-lg hover:shadow-lg hover:shadow-cyan-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-cyan-500/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
                         <Send className="w-4 h-4" />
-                        Submit
+                        Submit Solution
                     </button>
                 </div>
             </div>
 
-            {/* Monaco Editor */}
-            <div className="h-[400px]">
+            {/* Monaco Editor - Fills remaining space with guaranteed min height */}
+            <div className="flex-1 min-h-[250px]">
                 <Editor
                     height="100%"
-                    language={language === 'cpp' ? 'cpp' : 'java'}
+                    language={getMonacoLanguage(language)}
                     value={code}
                     onChange={(value) => setCode(value || '')}
                     theme="vs-dark"
                     options={{
                         fontSize: 14,
-                        fontFamily: 'JetBrains Mono, Consolas, monospace',
+                        fontFamily: 'JetBrains Mono, Fira Code, Consolas, monospace',
+                        fontLigatures: true,
                         minimap: { enabled: false },
-                        scrollBeyondLastLine: false,
+                        scrollBeyondLastLine: true,
                         lineNumbers: 'on',
                         glyphMargin: false,
                         folding: true,
@@ -176,10 +264,39 @@ public class Main {
                         automaticLayout: true,
                         tabSize: 4,
                         wordWrap: 'on',
-                        padding: { top: 16 },
+                        padding: { top: 16, bottom: 16 },
+                        smoothScrolling: true,
+                        cursorBlinking: 'smooth',
+                        cursorSmoothCaretAnimation: 'on',
+                        renderLineHighlight: 'all',
+                        readOnly: disabled, // Bind disabled prop to readOnly
+                        domReadOnly: disabled, // Ensure DOM is also read-only if needed
+                        scrollbar: {
+                            vertical: 'visible',
+                            horizontal: 'visible',
+                            verticalScrollbarSize: 10,
+                            horizontalScrollbarSize: 10,
+                        }
                     }}
                 />
             </div>
+
+            {/* Custom scrollbar styles */}
+            <style jsx="true">{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255, 255, 255, 0.2);
+                }
+            `}</style>
         </div>
     );
 }

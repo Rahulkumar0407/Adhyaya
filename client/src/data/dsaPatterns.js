@@ -8,6 +8,9 @@ export const dsaPatterns = [
     "slug": "two-pointers",
     "icon": "👆",
     "description": "Master the Two Pointers pattern",
+    "lectureNotes": [
+      "https://raw.githubusercontent.com/team-codebug/babua-dsa-patterns-course/main/1_Day/1_Two_Pointer_Pattern_Theory.excalidraw.svg"
+    ],
     "items": [
       {
         "id": "two-pointer-theory",
@@ -49,6 +52,7 @@ export const dsaPatterns = [
         "slug": "valid-palindrome",
         "difficulty": "easy",
         "externalLink": "https://leetcode.com/problems/valid-palindrome/",
+        "lectureNotesPdf": "https://github.com/team-codebug/babua-dsa-patterns-course/blob/main/2_Day/End_Day_2.pdf",
         "patternSlug": "two-pointers",
         "theory": {
           "explanation": "This is a classic Two Pointers problem. Understanding the pattern will help you solve similar problems efficiently.",
@@ -100,6 +104,7 @@ export const dsaPatterns = [
         "slug": "reverse-string",
         "difficulty": "easy",
         "externalLink": "https://leetcode.com/problems/reverse-string/",
+        "lectureNotesPdf": "https://github.com/team-codebug/babua-dsa-patterns-course/blob/main/2_Day/End_Day_2.pdf",
         "patternSlug": "two-pointers",
         "theory": {
           "explanation": "This is a classic Two Pointers problem. Understanding the pattern will help you solve similar problems efficiently.",
@@ -151,6 +156,7 @@ export const dsaPatterns = [
         "slug": "squares-of-a-sorted-array",
         "difficulty": "easy",
         "externalLink": "https://leetcode.com/problems/squares-of-a-sorted-array/",
+        "lectureNotesPdf": "https://github.com/team-codebug/babua-dsa-patterns-course/blob/main/2_Day/End_Day_2.pdf",
         "patternSlug": "two-pointers",
         "theory": {
           "explanation": "This is a classic Two Pointers problem. Understanding the pattern will help you solve similar problems efficiently.",
@@ -202,6 +208,7 @@ export const dsaPatterns = [
         "slug": "valid-palindrome-ii",
         "difficulty": "easy",
         "externalLink": "https://leetcode.com/problems/valid-palindrome-ii/",
+        "lectureNotesPdf": "https://github.com/team-codebug/babua-dsa-patterns-course/blob/main/2_Day/End_Day_2.pdf",
         "patternSlug": "two-pointers",
         "theory": {
           "explanation": "This is a classic Two Pointers problem. Understanding the pattern will help you solve similar problems efficiently.",
@@ -253,6 +260,7 @@ export const dsaPatterns = [
         "slug": "valid-word-abbreviation",
         "difficulty": "medium",
         "externalLink": "https://leetcode.com/problems/valid-word-abbreviation/description/",
+        "lectureNotesPdf": "https://github.com/team-codebug/babua-dsa-patterns-course/blob/main/2_Day/End_Day_2.pdf",
         "patternSlug": "two-pointers",
         "theory": {
           "explanation": "This is a classic Two Pointers problem. Understanding the pattern will help you solve similar problems efficiently.",
@@ -1211,6 +1219,9 @@ export const dsaPatterns = [
     "slug": "fast-and-slow-pointers",
     "icon": "🐢",
     "description": "Master the Fast and Slow Pointers pattern",
+    "lectureNotes": [
+      "https://raw.githubusercontent.com/team-codebug/babua-dsa-patterns-course/main/7_Day/NOTES/FINAL_2_Fast_Slow_Pointer_Theory.excalidraw.svg"
+    ],
     "items": [
       {
         "id": "fsp-theory",

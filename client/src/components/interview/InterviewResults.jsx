@@ -1,5 +1,6 @@
-import { Trophy, Target, AlertTriangle, CheckCircle, ArrowRight, RotateCcw, Home, TrendingUp, Sparkles, Brain, Award } from 'lucide-react';
+import { Trophy, Target, AlertTriangle, CheckCircle, ArrowRight, RotateCcw, Home, TrendingUp, Sparkles, Brain, Award, BarChart3, BookOpen, GraduationCap, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { mapWeakAreasToResources } from '../../data/fallbackQuestions';
 
 // Interview Results Component
 export default function InterviewResults({
@@ -12,14 +13,28 @@ export default function InterviewResults({
 
     const {
         overallScore = 0,
+        scores = {},
         problems = [],
+        patternsAsked = [],
         strengths = [],
         weakPoints = [],
-        improvements = [],
+        suggestions = [],
+        weakTopics = [],
         timeTaken = 0,
         questionsAttempted = 0,
         questionsTotal = 0
     } = results;
+
+    // Get suggested resources based on weak areas
+    const suggestedResources = mapWeakAreasToResources([...weakTopics, ...weakPoints]);
+
+    // Section scores with defaults
+    const sectionScores = {
+        problemSolving: scores.problemSolving || overallScore,
+        communication: scores.communication || overallScore,
+        confidence: scores.confidence || overallScore,
+        accuracy: scores.accuracy || overallScore
+    };
 
     // Score color based on performance
     const getScoreColor = (score) => {
@@ -105,6 +120,64 @@ export default function InterviewResults({
                     </div>
                 </div>
 
+                {/* Section-wise Scores */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: '200ms' }}>
+                    {[
+                        { label: 'Problem Solving', score: sectionScores.problemSolving, color: 'cyan' },
+                        { label: 'Communication', score: sectionScores.communication, color: 'purple' },
+                        { label: 'Confidence', score: sectionScores.confidence, color: 'amber' },
+                        { label: 'Accuracy', score: sectionScores.accuracy, color: 'emerald' }
+                    ].map((section, idx) => (
+                        <div key={idx} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 text-center hover:bg-white/10 transition-all">
+                            <div className="text-3xl font-black mb-2" style={{ color: section.color === 'cyan' ? '#22d3d3' : section.color === 'purple' ? '#a855f7' : section.color === 'amber' ? '#f59e0b' : '#10b981' }}>
+                                {section.score}%
+                            </div>
+                            <div className="text-slate-400 text-xs font-bold uppercase tracking-widest">{section.label}</div>
+                            <div className="h-1 bg-white/10 rounded-full mt-3">
+                                <div
+                                    className="h-1 rounded-full transition-all duration-1000"
+                                    style={{
+                                        width: `${section.score}%`,
+                                        backgroundColor: section.color === 'cyan' ? '#22d3d3' : section.color === 'purple' ? '#a855f7' : section.color === 'amber' ? '#f59e0b' : '#10b981'
+                                    }}
+                                ></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Pattern Analysis (if available) */}
+                {patternsAsked.length > 0 && (
+                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 mb-12 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: '300ms' }}>
+                        <h3 className="text-xl font-black text-cyan-400 mb-6 flex items-center gap-3 uppercase tracking-widest">
+                            <BarChart3 className="w-6 h-6" />
+                            Pattern Analysis
+                        </h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {patternsAsked.map((p, idx) => (
+                                <div key={idx} className={`p-4 rounded-2xl border ${p.solved ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        {p.solved ? (
+                                            <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                        ) : (
+                                            <AlertTriangle className="w-4 h-4 text-amber-400" />
+                                        )}
+                                        <span className={`text-xs font-bold uppercase tracking-wider ${p.solved ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                            {p.solved ? 'Strong' : 'Practice'}
+                                        </span>
+                                    </div>
+                                    <p className="text-white font-bold capitalize">
+                                        {p.pattern?.replace(/_/g, ' ') || 'General'}
+                                    </p>
+                                    {p.score > 0 && (
+                                        <p className="text-slate-400 text-sm mt-1">{p.score}% score</p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
                     {/* Strengths */}
                     <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-left-8 duration-700">
@@ -148,20 +221,50 @@ export default function InterviewResults({
                 </div>
 
                 {/* Recommendations */}
-                {improvements.length > 0 && (
+                {suggestions.length > 0 && (
                     <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 mb-12 shadow-2xl animate-in slide-in-from-bottom-8 duration-700">
                         <h3 className="text-xl font-black text-cyan-400 mb-8 flex items-center gap-3 uppercase tracking-widest">
                             <TrendingUp className="w-6 h-6" />
                             Roadmap to Success
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {improvements.map((improvement, idx) => (
+                            {suggestions.map((suggestion, idx) => (
                                 <div key={idx} className="flex items-center gap-4 p-5 bg-cyan-500/5 border border-cyan-500/10 rounded-[1.5rem] group hover:bg-cyan-500/10 transition-all">
                                     <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                                         <ArrowRight className="w-5 h-5 text-cyan-400 group-hover:translate-x-1 transition-transform" />
                                     </div>
-                                    <p className="text-slate-200 font-bold">{improvement}</p>
+                                    <p className="text-slate-200 font-bold">{suggestion}</p>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Suggested Adhyaya Resources */}
+                {suggestedResources.length > 0 && (
+                    <div className="bg-gradient-to-br from-purple-500/10 to-cyan-500/10 backdrop-blur-xl border border-purple-500/20 rounded-[2.5rem] p-10 mb-12 shadow-2xl animate-in slide-in-from-bottom-8 duration-700">
+                        <h3 className="text-xl font-black text-purple-400 mb-8 flex items-center gap-3 uppercase tracking-widest">
+                            <GraduationCap className="w-6 h-6" />
+                            Recommended Learning
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {suggestedResources.map((resource, idx) => (
+                                <Link
+                                    key={idx}
+                                    to={resource.path}
+                                    className="flex items-start gap-4 p-5 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-purple-500/30 transition-all group"
+                                >
+                                    <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <BookOpen className="w-5 h-5 text-purple-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-white font-bold group-hover:text-purple-400 transition-colors">{resource.title}</p>
+                                        <p className="text-slate-400 text-sm mt-1">{resource.description}</p>
+                                        <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-purple-500/20 text-purple-400 rounded-lg">
+                                            {resource.type}
+                                        </span>
+                                    </div>
+                                </Link>
                             ))}
                         </div>
                     </div>
@@ -174,8 +277,15 @@ export default function InterviewResults({
                         className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black uppercase tracking-widest rounded-[2rem] hover:shadow-[0_0_40px_rgba(6,182,212,0.4)] hover:scale-105 active:scale-[0.95] transition-all"
                     >
                         <RotateCcw className="w-6 h-6" />
-                        Retry Session
+                        Retry Interview
                     </button>
+                    <Link
+                        to="/mentors"
+                        className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black uppercase tracking-widest rounded-[2rem] hover:shadow-[0_0_40px_rgba(168,85,247,0.4)] hover:scale-105 active:scale-[0.95] transition-all"
+                    >
+                        <Users className="w-6 h-6" />
+                        Book Mentor
+                    </Link>
                     <Link
                         to="/dashboard"
                         onClick={onClose}

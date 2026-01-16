@@ -139,6 +139,6 @@ topicSchema.pre('save', function (next) {
     next();
 });
 
-const Topic = mongoose.model('Topic', topicSchema);
+const Topic = mongoose.models.Topic || mongoose.model('Topic', topicSchema);
 
 export default Topic;

@@ -22,4 +22,4 @@ problemSchema.virtual('isSolvedByUser').get(function () {
     return false;
 });
 
-export default mongoose.model('Problem', problemSchema);
+export default mongoose.models.Problem || mongoose.model('Problem', problemSchema);

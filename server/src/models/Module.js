@@ -80,6 +80,6 @@ moduleSchema.virtual('sectionCount').get(function () {
     return this.sections?.length || 0;
 });
 
-const Module = mongoose.model('Module', moduleSchema);
+const Module = mongoose.models.Module || mongoose.model('Module', moduleSchema);
 
 export default Module;

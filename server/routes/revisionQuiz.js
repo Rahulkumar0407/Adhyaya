@@ -4,9 +4,17 @@ import RevisionQuiz from '../models/RevisionQuiz.js';
 import AdaptiveRevision from '../models/AdaptiveRevision.js';
 import { adjustScheduleBasedOnPerformance } from '../services/revisionScheduler.js';
 
+import { checkGlobalLimit } from '../middleware/checkLimit.js';
+
 const router = express.Router();
 
-// Sample question bank by topic with difficulty levels
+// ... (existing code)
+
+/**
+ * @route   POST /api/revision-quiz/generate
+ * @desc    Generate an adaptive quiz for a topic
+ * @access  Private
+ */
 const questionBank = {
     dsa: {
         arrays: [

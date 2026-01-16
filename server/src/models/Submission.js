@@ -28,4 +28,4 @@ submissionSchema.pre('save', function (next) {
 
 submissionSchema.index({ user: 1, problem: 1 });
 
-export default mongoose.model('Submission', submissionSchema);
+export default mongoose.models.Submission || mongoose.model('Submission', submissionSchema);

@@ -12,7 +12,7 @@ const progressSchema = new mongoose.Schema({
         required: true,
         default: Date.now
     },
-    
+
     // Daily activities
     problemsSolved: {
         type: Number,
@@ -34,7 +34,7 @@ const progressSchema = new mongoose.Schema({
         quiz: { type: mongoose.Schema.Types.ObjectId, ref: 'Quiz' },
         score: Number
     }],
-    
+
     // Time tracking
     timeSpent: {
         total: { type: Number, default: 0 }, // minutes
@@ -42,13 +42,13 @@ const progressSchema = new mongoose.Schema({
         coding: { type: Number, default: 0 },
         reading: { type: Number, default: 0 }
     },
-    
+
     // Streak
     streakMaintained: {
         type: Boolean,
         default: false
     },
-    
+
     // XP & Coins earned today
     xpEarned: {
         type: Number,
@@ -65,6 +65,6 @@ const progressSchema = new mongoose.Schema({
 // Compound index for user + date (one document per user per day)
 progressSchema.index({ user: 1, date: 1 }, { unique: true });
 
-const Progress = mongoose.model('Progress', progressSchema);
+const Progress = mongoose.models.Progress || mongoose.model('Progress', progressSchema);
 
 export default Progress;

@@ -10,10 +10,13 @@ export default function MainLayout({ children }) {
     const hideNavbarPaths = ['/', '/login', '/register', '/auth-success'];
 
     // Also hide if path starts with /call/ (video call room usually full screen)
-    const shouldHideNavbar = hideNavbarPaths.includes(location.pathname) || location.pathname.startsWith('/call/');
+    // Also hide for /admin routes (admin has its own layout)
+    const shouldHideNavbar = hideNavbarPaths.includes(location.pathname)
+        || location.pathname.startsWith('/call/')
+        || location.pathname.startsWith('/admin');
 
     // Always show navbar for mock-interview page (it serves as a landing page too)
-    const alwaysShowNavbarPaths = ['/mock-interview'];
+    const alwaysShowNavbarPaths = ['/mock-interview', '/how-to-earn'];
     const shouldForceShowNavbar = alwaysShowNavbarPaths.includes(location.pathname);
 
     const showNavbar = (user || shouldForceShowNavbar) && !loading && !shouldHideNavbar;

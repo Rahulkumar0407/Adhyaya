@@ -67,6 +67,7 @@ import orderRoutes from './routes/order.js';
 import enrollmentRoutes from './routes/enrollment.js';
 import uploadRoutes from './routes/upload.js';
 import notificationRoutes from './routes/notification.js';
+import referralRoutes from './routes/referral.js';
 import { errorHandler, notFound } from './middlewares/errorHandler.js';
 import { apiLimiter } from './middlewares/rateLimiter.js';
 
@@ -82,6 +83,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/referral', referralRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

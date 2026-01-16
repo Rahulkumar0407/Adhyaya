@@ -50,6 +50,6 @@ sectionSchema.virtual('topicCount').get(function () {
     return this.topics?.length || 0;
 });
 
-const Section = mongoose.model('Section', sectionSchema);
+const Section = mongoose.models.Section || mongoose.model('Section', sectionSchema);
 
 export default Section;

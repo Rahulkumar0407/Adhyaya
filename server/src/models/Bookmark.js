@@ -9,4 +9,4 @@ const bookmarkSchema = new mongoose.Schema({
 // Ensure a user cannot bookmark the same problem multiple times
 bookmarkSchema.index({ user: 1, problem: 1 }, { unique: true });
 
-export default mongoose.model('Bookmark', bookmarkSchema);
+export default mongoose.models.Bookmark || mongoose.model('Bookmark', bookmarkSchema);

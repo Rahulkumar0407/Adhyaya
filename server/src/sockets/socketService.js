@@ -5,10 +5,16 @@ const socketService = (io) => {
     io.on('connection', (socket) => {
         console.log(`New connection: ${socket.id}`);
 
-        // Join user room
+        // Auto-join user room if authenticated
+        if (socket.user && socket.user.id) {
+            socket.join(`user:${socket.user.id}`);
+            console.log(`Socket ${socket.id} auto-joined user:${socket.user.id}`);
+        }
+
+        // Join user room (manual fallback)
         socket.on('join:user', (userId) => {
             socket.join(`user:${userId}`);
-            console.log(`Socket ${socket.id} joined user:${userId}`);
+            console.log(`Socket ${socket.id} manually joined user:${userId}`);
         });
 
         // Join course/pod room for real-time doubts

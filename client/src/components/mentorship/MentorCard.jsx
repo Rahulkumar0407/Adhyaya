@@ -5,6 +5,29 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+// Stock professional avatars for mentors without custom images
+const STOCK_AVATARS = [
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+    'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=150&h=150&fit=crop&crop=face',
+    'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop&crop=face',
+    'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&crop=face',
+    'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=face',
+    'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop&crop=face',
+    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+];
+
+// Get consistent stock avatar based on mentor ID or name
+const getStockAvatar = (id, name) => {
+    const seed = id || name || 'default';
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+        hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+        hash |= 0;
+    }
+    return STOCK_AVATARS[Math.abs(hash) % STOCK_AVATARS.length];
+};
+
 export default function MentorCard({ mentor, onInstantCall }) {
     const {
         user,
@@ -20,8 +43,9 @@ export default function MentorCard({ mentor, onInstantCall }) {
 
     const [isHovered, setIsHovered] = useState(false);
 
-    // Default Avatar
+    // Default Avatar - use stock image if no custom avatar
     const avatarInitial = user?.name?.charAt(0) || 'M';
+    const stockAvatar = getStockAvatar(mentor._id, user?.name);
 
     return (
         <div
@@ -33,11 +57,15 @@ export default function MentorCard({ mentor, onInstantCall }) {
             <div className="flex gap-4 mb-4">
                 <div className="relative">
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden">
-                        {user?.avatar ? (
-                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                        ) : (
-                            <span className="text-2xl font-bold text-gray-400">{avatarInitial}</span>
-                        )}
+                        <img
+                            src={user?.avatar || stockAvatar}
+                            alt={user?.name || 'Mentor'}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = stockAvatar;
+                            }}
+                        />
                     </div>
                     {isOnline ? (
                         <div className="absolute -bottom-1 -right-1 flex items-center justify-center w-5 h-5 bg-[#1a1a1a] rounded-full border border-gray-800">
@@ -113,8 +141,8 @@ export default function MentorCard({ mentor, onInstantCall }) {
             <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-800 group-hover:border-orange-500/20 transition-colors">
                 <button
                     className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${isOnline
-                            ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:scale-105'
-                            : 'bg-gray-800/50 text-gray-500 cursor-not-allowed'
+                        ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:scale-105'
+                        : 'bg-gray-800/50 text-gray-500 cursor-not-allowed'
                         }`}
                     disabled={!isOnline}
                     onClick={() => isOnline && onInstantCall && onInstantCall(mentor)}

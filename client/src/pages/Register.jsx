@@ -35,10 +35,10 @@ export default function Register() {
 
         try {
             await register(name, email, password);
-            toast.success('Swagat hai babua! 🙏');
-            navigate('/dashboard');
+            toast.success('Account ban gaya! Ab login karo babua! 🙏');
+            navigate('/login?registered=true');
         } catch (err) {
-            setError(err.response?.data?.message || 'Registration fail ho gaya. Phir se try karo.');
+            setError(err.message || err.response?.data?.message || 'Registration fail ho gaya. Phir se try karo.');
         } finally {
             setLoading(false);
         }

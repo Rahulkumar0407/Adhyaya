@@ -47,7 +47,9 @@ export default function CtoBhaiyaClipPlayer({
     endTime,
     title,
     fallbackSummary,
-    className = ''
+    className = '',
+    teaserDuration = 0, // 0 means disabled
+    onTeaserEnd
 }) {
     const containerId = useMemo(
         () => `yt-clip-${videoId}-${startTime}-${endTime}-${Math.random().toString(16).slice(2)}`,
@@ -343,6 +345,13 @@ export default function CtoBhaiyaClipPlayer({
                     window.dispatchEvent(new CustomEvent('videoCompleted', {
                         detail: { videoId, startTime, endTime }
                     }));
+                }
+
+                // Teaser Logic
+                if (teaserDuration > 0 && rel >= teaserDuration) {
+                    playerRef.current.pauseVideo?.();
+                    setIsPlaying(false);
+                    if (onTeaserEnd) onTeaserEnd();
                 }
             } catch {
                 // Ignore

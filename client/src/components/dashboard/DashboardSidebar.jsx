@@ -1,4 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import PrefetchLink from '../common/PrefetchLink';
 import { useAuth } from '../../context/AuthContext';
 import {
     Home,
@@ -47,7 +48,7 @@ export default function DashboardSidebar() {
         <aside className="w-64 min-h-screen bg-[#1a1a1a] border-r border-gray-800 flex flex-col">
             {/* Logo */}
             <div className="p-6">
-                <Link to="/" className="flex items-center gap-3">
+                <PrefetchLink to="/" className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
                         <img src="/favicon.png" alt="Adhyaya Logo" className="w-6 h-6 object-contain" />
                     </div>
@@ -55,7 +56,7 @@ export default function DashboardSidebar() {
                         <span className="text-lg font-bold text-orange-500">ADHYAYA</span>
                         <p className="text-[10px] text-gray-500 -mt-1">HUMARA PLATFORM</p>
                     </div>
-                </Link>
+                </PrefetchLink>
             </div>
 
             {/* Navigation */}
@@ -79,7 +80,7 @@ export default function DashboardSidebar() {
                                         >
                                             <item.icon className="w-5 h-5" />
                                             <span className="font-medium">{item.name}</span>
-                                        </Link>
+                                        </PrefetchLink>
                                     </li>
                                 );
                             })}

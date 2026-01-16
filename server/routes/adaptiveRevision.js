@@ -9,6 +9,8 @@ import {
     getSmartSuggestions
 } from '../services/revisionScheduler.js';
 
+import { checkGlobalLimit } from '../middleware/checkLimit.js';
+
 const router = express.Router();
 
 // ========================================
@@ -20,7 +22,7 @@ const router = express.Router();
  * @desc    Submit understanding after completing a lecture
  * @access  Private
  */
-router.post('/feedback', protect, async (req, res) => {
+router.post('/feedback', protect, checkGlobalLimit('adaptiveRevision'), async (req, res) => {
     try {
         const {
             course,
@@ -42,13 +44,57 @@ router.post('/feedback', protect, async (req, res) => {
             });
         }
 
-        // Check if progress already exists
+        // Get user with subscription info
+        const User = (await import('../models/User.js')).default;
+        const user = await User.findById(req.user._id);
+
+        // Initialize subscription if not exists
+        if (!user.adaptiveRevisionSubscription) {
+            user.adaptiveRevisionSubscription = {
+                plan: 'free_trial',
+                lecturesUsed: 0,
+                maxFreeLectures: 3
+            };
+        }
+
+        const subscription = user.adaptiveRevisionSubscription;
+
+        // Check if this is a NEW lecture (not updating existing)
         let lectureProgress = await LectureProgress.findOne({
             user: req.user._id,
             course,
             topicId,
             lessonId: lessonId || null
         });
+
+        const isNewLecture = !lectureProgress;
+
+        // Check subscription limits for NEW lectures only
+        if (isNewLecture && subscription.plan === 'free_trial') {
+            if (subscription.lecturesUsed >= subscription.maxFreeLectures) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Free trial limit reached. Upgrade to Premium for unlimited access.',
+                    requiresUpgrade: true,
+                    lecturesUsed: subscription.lecturesUsed,
+                    maxFreeLectures: subscription.maxFreeLectures
+                });
+            }
+        }
+
+        // Check if premium expired
+        if (subscription.plan === 'premium' && subscription.expiresAt) {
+            if (new Date() > new Date(subscription.expiresAt)) {
+                subscription.plan = 'expired';
+                await user.save();
+                return res.status(403).json({
+                    success: false,
+                    message: 'Your premium subscription has expired. Please renew.',
+                    requiresUpgrade: true,
+                    expired: true
+                });
+            }
+        }
 
         if (lectureProgress) {
             // Update existing progress
@@ -71,6 +117,11 @@ router.post('/feedback', protect, async (req, res) => {
                 timeSpent,
                 videoWatchedFully
             });
+
+            // Increment lectures used for free trial
+            if (subscription.plan === 'free_trial') {
+                subscription.lecturesUsed += 1;
+            }
         }
 
         // Generate revision schedule if not already done
@@ -81,8 +132,6 @@ router.post('/feedback', protect, async (req, res) => {
         }
 
         // Award points for completing lecture
-        const User = (await import('../models/User.js')).default;
-        const user = await User.findById(req.user._id);
         user.babuaCoins += 5; // 5 coins for completing with feedback
         user.updateStreak();
         await user.save();
@@ -92,7 +141,15 @@ router.post('/feedback', protect, async (req, res) => {
             data: {
                 lectureProgress,
                 revisionsCreated: revisions.length,
-                coinsEarned: 5
+                coinsEarned: 5,
+                subscription: {
+                    plan: subscription.plan,
+                    lecturesUsed: subscription.lecturesUsed,
+                    maxFreeLectures: subscription.maxFreeLectures,
+                    remaining: subscription.plan === 'free_trial'
+                        ? subscription.maxFreeLectures - subscription.lecturesUsed
+                        : 'unlimited'
+                }
             }
         });
     } catch (error) {
@@ -477,6 +534,198 @@ router.post('/custom', protect, async (req, res) => {
             data: revision
         });
     } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// ========================================
+// SUBSCRIPTION MANAGEMENT
+// ========================================
+
+/**
+ * @route   GET /api/adaptive-revision/subscription
+ * @desc    Get user's adaptive revision subscription status
+ * @access  Private
+ */
+router.get('/subscription', protect, async (req, res) => {
+    try {
+        const User = (await import('../models/User.js')).default;
+        const user = await User.findById(req.user._id);
+
+        // Initialize subscription if not exists
+        if (!user.adaptiveRevisionSubscription) {
+            user.adaptiveRevisionSubscription = {
+                plan: 'free_trial',
+                lecturesUsed: 0,
+                maxFreeLectures: 3
+            };
+            await user.save();
+        }
+
+        const subscription = user.adaptiveRevisionSubscription;
+
+        // Check if premium expired
+        let isExpired = false;
+        if (subscription.plan === 'premium' && subscription.expiresAt) {
+            if (new Date() > new Date(subscription.expiresAt)) {
+                subscription.plan = 'expired';
+                isExpired = true;
+                await user.save();
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                plan: subscription.plan,
+                lecturesUsed: subscription.lecturesUsed,
+                maxFreeLectures: subscription.maxFreeLectures,
+                remaining: subscription.plan === 'free_trial'
+                    ? Math.max(0, subscription.maxFreeLectures - subscription.lecturesUsed)
+                    : 'unlimited',
+                canAddMore: subscription.plan === 'premium' ||
+                    (subscription.plan === 'free_trial' && subscription.lecturesUsed < subscription.maxFreeLectures),
+                subscribedAt: subscription.subscribedAt,
+                expiresAt: subscription.expiresAt,
+                isExpired,
+                price: {
+                    amount: 60,
+                    currency: 'INR',
+                    period: 'month'
+                }
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+/**
+ * @route   POST /api/adaptive-revision/subscribe
+ * @desc    Request premium subscription (requires admin verification after payment)
+ * @access  Private
+ */
+router.post('/subscribe', protect, async (req, res) => {
+    try {
+        const { paymentId } = req.body;
+
+        if (!paymentId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Payment reference required. Please use wallet payment or contact admin.'
+            });
+        }
+
+        const User = (await import('../models/User.js')).default;
+        const user = await User.findById(req.user._id);
+
+        // Mark payment as pending admin verification
+        // Admin will need to manually verify and upgrade via admin panel
+        user.adaptiveRevisionSubscription = {
+            ...user.adaptiveRevisionSubscription,
+            pendingPaymentId: paymentId,
+            pendingPaymentDate: new Date(),
+            pendingUpgrade: true
+        };
+
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Payment recorded! Your subscription will be activated within 24 hours after admin verification.',
+            data: {
+                status: 'pending_verification',
+                paymentId: paymentId
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+/**
+ * @route   POST /api/adaptive-revision/subscribe-with-wallet
+ * @desc    Upgrade to premium subscription using wallet balance
+ * @access  Private
+ */
+router.post('/subscribe-with-wallet', protect, async (req, res) => {
+    try {
+        const PREMIUM_PRICE = 60; // ₹60 per month
+
+        const User = (await import('../models/User.js')).default;
+        const Wallet = (await import('../models/Wallet.js')).default;
+
+        const user = await User.findById(req.user._id);
+        let wallet = await Wallet.findOne({ user: req.user._id });
+
+        // Create wallet if doesn't exist
+        if (!wallet) {
+            wallet = await Wallet.create({ user: req.user._id, balance: 0 });
+        }
+
+        // Check if user has sufficient balance
+        if (wallet.balance < PREMIUM_PRICE) {
+            return res.status(400).json({
+                success: false,
+                message: `Insufficient wallet balance. You need ₹${PREMIUM_PRICE} but have ₹${wallet.balance}.`,
+                requiredAmount: PREMIUM_PRICE,
+                currentBalance: wallet.balance,
+                shortfall: PREMIUM_PRICE - wallet.balance
+            });
+        }
+
+        // Deduct from wallet
+        wallet.balance -= PREMIUM_PRICE;
+        wallet.transactions.push({
+            type: 'subscription',
+            amount: -PREMIUM_PRICE,
+            description: 'Adaptive Revision Premium - 1 Month',
+            status: 'completed',
+            metadata: {
+                feature: 'adaptive-revision',
+                plan: 'premium',
+                duration: '30 days'
+            }
+        });
+        await wallet.save();
+
+        // Upgrade subscription
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+        user.adaptiveRevisionSubscription = {
+            plan: 'premium',
+            lecturesUsed: user.adaptiveRevisionSubscription?.lecturesUsed || 0,
+            maxFreeLectures: 3, // Keep for reference
+            subscribedAt: now,
+            expiresAt: expiresAt,
+            paymentId: `wallet_${Date.now()}`
+        };
+
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Successfully upgraded to Premium!',
+            data: {
+                plan: 'premium',
+                subscribedAt: now,
+                expiresAt: expiresAt,
+                amountDeducted: PREMIUM_PRICE,
+                newWalletBalance: wallet.balance
+            }
+        });
+    } catch (error) {
+        console.error('Wallet subscription error:', error);
         res.status(500).json({
             success: false,
             message: error.message

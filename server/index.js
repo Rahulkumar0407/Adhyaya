@@ -6,6 +6,8 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import socketService from './src/sockets/socketService.js';
+import jwt from 'jsonwebtoken';
 import session from 'express-session';
 import connectDB from './config/db.js';
 import passport from './config/passport.js';
@@ -19,6 +21,7 @@ import podRoutes from './routes/pods.js';
 import dashboardRoutes from './routes/dashboard.js';
 import profileRoutes from './src/routes/profile.js';
 import chatRoutes from './routes/chat.js';
+import referralRoutes from './routes/referral.js';
 // Mentorship routes
 import mentorRoutes from './routes/mentors.js';
 import callRoutes from './routes/calls.js';
@@ -29,6 +32,16 @@ import revisionQuizRoutes from './routes/revisionQuiz.js';
 // Doubt Solving System routes
 import doubtRoutes from './routes/doubts.js';
 import doubtMentorRoutes from './routes/doubts-mentor.js';
+// Admin Dashboard routes
+import adminRoutes from './routes/admin.js';
+// Notification routes
+import notificationRoutes from './src/routes/notification.js';
+// Interview routes
+import interviewRoutes from './routes/interview.js';
+// Focus Mode routes
+import focusRoutes from './routes/focus.js';
+// Public routes
+import publicRoutes from './routes/public.js';
 
 // Initialize express app
 const app = express();
@@ -41,6 +54,26 @@ const io = new Server(httpServer, {
     methods: ['GET', 'POST']
   }
 });
+
+// Middleware for Socket Authentication
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+      socket.user = decoded;
+      next();
+    } catch (err) {
+      console.log('Socket auth failed:', err.message);
+      next(); // Allow connection even if auth fails (for public events?), or pass err to block
+    }
+  } else {
+    next();
+  }
+});
+
+// Initialize Socket Service
+socketService(io);
 
 // Middleware
 app.use(cors({
@@ -80,6 +113,7 @@ app.use('/api/pods', podRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/referral', referralRoutes);
 // Mentorship Routes
 app.use('/api/mentors', mentorRoutes);
 app.use('/api/calls', callRoutes);
@@ -90,6 +124,16 @@ app.use('/api/revision-quiz', revisionQuizRoutes);
 // Doubt Solving System Routes
 app.use('/api/doubts', doubtRoutes);
 app.use('/api/doubts/mentor', doubtMentorRoutes);
+// Admin Dashboard Routes
+app.use('/api/admin', adminRoutes);
+// Notification Routes
+app.use('/api/notifications', notificationRoutes);
+// Interview Routes
+app.use('/api/interview', interviewRoutes);
+// Focus Mode Routes
+app.use('/api/focus', focusRoutes);
+// Public Routes
+app.use('/api/public', publicRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -100,7 +144,11 @@ app.get('/api/health', (req, res) => {
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  // Join pod room
+  // Join personal notification room
+  socket.on('join-notifications', (userId) => {
+    socket.join(`user:${userId}`);
+    console.log(`User ${userId} joined notification room`);
+  });
   socket.on('join-pod', (podId) => {
     socket.join(`pod-${podId}`);
     console.log(`User ${socket.id} joined pod ${podId}`);

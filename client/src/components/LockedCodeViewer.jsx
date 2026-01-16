@@ -44,16 +44,17 @@ export default function LockedCodeViewer({
     videoId,
     startTime,
     endTime,
-    className = ''
+    className = '',
+    unlocked = false // New prop to force unlock from parent
 }) {
-    const [isUnlocked, setIsUnlocked] = useState(false);
+    const [isUnlocked, setIsUnlocked] = useState(unlocked);
     const [activeTab, setActiveTab] = useState('java');
     const [copied, setCopied] = useState(false);
     const prismRef = useRef(null); // holds Prism once loaded
 
     useEffect(() => {
-        setIsUnlocked(isVideoWatched(videoId, startTime, endTime));
-    }, [videoId, startTime, endTime]);
+        setIsUnlocked(unlocked || isVideoWatched(videoId, startTime, endTime));
+    }, [videoId, startTime, endTime, unlocked]);
 
     // Lazy-load Prism + languages to avoid ordering issues during Vite dev HMR
     useEffect(() => {
@@ -136,11 +137,10 @@ export default function LockedCodeViewer({
                             {javaCode && (
                                 <button
                                     onClick={() => setActiveTab('java')}
-                                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                                        activeTab === 'java'
-                                            ? 'bg-orange-500 text-white'
-                                            : 'text-gray-400 hover:text-white'
-                                    }`}
+                                    className={`px-3 py-1 text-sm rounded-md transition-colors ${activeTab === 'java'
+                                        ? 'bg-orange-500 text-white'
+                                        : 'text-gray-400 hover:text-white'
+                                        }`}
                                 >
                                     Java
                                 </button>
@@ -148,11 +148,10 @@ export default function LockedCodeViewer({
                             {cppCode && (
                                 <button
                                     onClick={() => setActiveTab('cpp')}
-                                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                                        activeTab === 'cpp'
-                                            ? 'bg-orange-500 text-white'
-                                            : 'text-gray-400 hover:text-white'
-                                    }`}
+                                    className={`px-3 py-1 text-sm rounded-md transition-colors ${activeTab === 'cpp'
+                                        ? 'bg-orange-500 text-white'
+                                        : 'text-gray-400 hover:text-white'
+                                        }`}
                                 >
                                     C++
                                 </button>

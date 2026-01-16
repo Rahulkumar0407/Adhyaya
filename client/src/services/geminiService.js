@@ -1,5 +1,5 @@
 // Gemini AI Service - Interview Question Generation with API Key Rotation
-// Uses multiple API keys with automatic fallback
+// Uses multiple API keys with automatic fallback to Groq AI
 // API keys are loaded from environment variables to prevent exposure
 
 const GEMINI_API_KEYS = [
@@ -7,20 +7,43 @@ const GEMINI_API_KEYS = [
     import.meta.env.VITE_GEMINI_API_KEY_2,
     import.meta.env.VITE_GEMINI_API_KEY_3,
     import.meta.env.VITE_GEMINI_API_KEY_4,
+    import.meta.env.VITE_GEMINI_API_KEY_5,
+    import.meta.env.VITE_GEMINI_API_KEY_6,
 ].filter(key => key); // Filter out undefined keys
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+// Groq API keys for fallback (free tier with Llama models)
+const GROQ_API_KEYS = [
+    import.meta.env.VITE_GROQ_API_KEY_1,
+    import.meta.env.VITE_GROQ_API_KEY_2,
+    import.meta.env.VITE_GROQ_API_KEY_3,
+    import.meta.env.VITE_GROQ_API_KEY_4,
+    import.meta.env.VITE_GROQ_API_KEY_5,
+    import.meta.env.VITE_GROQ_API_KEY_6,
+    import.meta.env.VITE_GROQ_API_KEY_7,
+    import.meta.env.VITE_GROQ_API_KEY_8,
+].filter(key => key);
+
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 
 class GeminiService {
     constructor() {
         this.currentKeyIndex = 0;
+        this.currentGroqKeyIndex = 0;
         this.failedKeys = new Set();
+        this.failedGroqKeys = new Set();
+        this.useGroqFallback = false;
     }
 
     // Get current API key
     getCurrentKey() {
         return GEMINI_API_KEYS[this.currentKeyIndex];
+    }
+
+    // Get current Groq API key
+    getCurrentGroqKey() {
+        return GROQ_API_KEYS[this.currentGroqKeyIndex];
     }
 
     // Rotate to next available key
@@ -35,9 +58,27 @@ class GeminiService {
         return false; // All keys exhausted
     }
 
+    // Rotate to next available Groq key
+    rotateGroqKey() {
+        if (GROQ_API_KEYS.length === 0) return false;
+        const startIndex = this.currentGroqKeyIndex;
+        do {
+            this.currentGroqKeyIndex = (this.currentGroqKeyIndex + 1) % GROQ_API_KEYS.length;
+            if (!this.failedGroqKeys.has(this.currentGroqKeyIndex)) {
+                return true;
+            }
+        } while (this.currentGroqKeyIndex !== startIndex);
+        return false;
+    }
+
     // Mark current key as failed
     markKeyFailed() {
         this.failedKeys.add(this.currentKeyIndex);
+    }
+
+    // Mark current Groq key as failed
+    markGroqKeyFailed() {
+        this.failedGroqKeys.add(this.currentGroqKeyIndex);
     }
 
     // Reset failed keys (call after some time)
@@ -45,83 +86,173 @@ class GeminiService {
         this.failedKeys.clear();
     }
 
-    // Make API request with automatic key rotation
-    async makeRequest(prompt, maxRetries = 14) {
-        let lastError = null;
+    // Reset failed Groq keys
+    resetFailedGroqKeys() {
+        this.failedGroqKeys.clear();
+    }
 
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-            if (this.failedKeys.size >= GEMINI_API_KEYS.length) {
-                throw new Error('RATE_LIMIT_EXCEEDED: All API keys exhausted. Please try again later.');
+    // Helper to extract retry delay from error message
+    extractRetryDelay(errorMessage) {
+        const match = errorMessage.match(/retry in (\d+\.?\d*)s/i);
+        if (match) {
+            return Math.ceil(parseFloat(match[1]) * 1000) + 1000; // Add 1s buffer
+        }
+        return 45000; // Default 45 seconds if not specified
+    }
+
+    // Helper to sleep
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Make request to Groq API (fallback)
+    async makeGroqRequest(prompt) {
+        if (GROQ_API_KEYS.length === 0) {
+            throw new Error('No Groq API keys configured');
+        }
+
+        let lastError = null;
+        const maxAttempts = GROQ_API_KEYS.length * 2;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            if (this.failedGroqKeys.size >= GROQ_API_KEYS.length) {
+                // All Groq keys exhausted, wait and retry once
+                console.log('⏳ All Groq keys exhausted. Waiting 30s before retry...');
+                await this.sleep(30000);
+                this.resetFailedGroqKeys();
             }
 
-            const apiKey = this.getCurrentKey();
+            const apiKey = this.getCurrentGroqKey();
+            if (!apiKey) break;
 
             try {
-                const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+                console.log(`🔄 Trying Groq API Key ${this.currentGroqKeyIndex + 1}...`);
+                const response = await fetch(GROQ_API_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`,
                     },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: prompt }]
-                        }],
-                        generationConfig: {
-                            temperature: 0.9,
-                            topP: 0.95,
-                            topK: 40,
-                            maxOutputTokens: 2048,
-                        },
-                        safetySettings: [
-                            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-                        ]
+                        model: 'llama-3.3-70b-versatile',
+                        messages: [
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ],
+                        temperature: 0.9,
+                        max_tokens: 2048,
                     })
                 });
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     const errorMessage = errorData.error?.message || `HTTP ${response.status}`;
-                    console.warn(`Gemini API Key ${this.currentKeyIndex + 1} failed: ${errorMessage}`);
+                    console.warn(`Groq API Key ${this.currentGroqKeyIndex + 1} failed: ${errorMessage}`);
 
-                    // Rotate on any error (429, 403, 400, etc.)
-                    this.markKeyFailed();
-                    this.rotateKey();
+                    if (response.status === 429 || response.status === 503) {
+                        this.markGroqKeyFailed();
+                        this.rotateGroqKey();
+                        lastError = new Error(errorMessage);
+                        continue;
+                    }
+
+                    this.markGroqKeyFailed();
+                    this.rotateGroqKey();
                     lastError = new Error(errorMessage);
                     continue;
                 }
 
                 const data = await response.json();
 
-                if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-                    return data.candidates[0].content.parts[0].text;
+                if (data.choices && data.choices[0]?.message?.content) {
+                    console.log('✅ Groq API request successful!');
+                    return data.choices[0].message.content;
                 }
 
-                throw new Error('Invalid response format from Gemini API');
+                throw new Error('Invalid response format from Groq API');
             } catch (error) {
-                console.error(`Gemini Service Error (Key ${this.currentKeyIndex + 1}):`, error.message);
+                console.error(`Groq Service Error (Key ${this.currentGroqKeyIndex + 1}):`, error.message);
                 lastError = error;
-
-                // Rotate on network errors or other exceptions
-                this.markKeyFailed();
-                const canRotate = this.rotateKey();
-                if (!canRotate) break;
-                continue;
+                this.markGroqKeyFailed();
+                if (!this.rotateGroqKey()) break;
             }
         }
 
-        throw lastError || new Error('Failed to get response from Gemini API');
+        throw lastError || new Error('Failed to get response from Groq API');
+    }
+
+    // Make API request with INSTANT fallback to Groq on failure
+    async makeRequest(prompt) {
+        const apiKey = this.getCurrentKey();
+
+        try {
+            const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.9,
+                        topP: 0.95,
+                        topK: 40,
+                        maxOutputTokens: 2048,
+                    },
+                    safetySettings: [
+                        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+                    ]
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.error?.message || `HTTP ${response.status}`;
+                throw new Error(errorMessage);
+            }
+
+            const data = await response.json();
+
+            if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                let text = data.candidates[0].content.parts[0].text;
+                // Clean up potential system tokens or artifacts
+                return text.replace(/^<s>\[SYSTEM\]\s*/i, '')
+                    .replace(/^\[SYSTEM\]\s*/i, '')
+                    .replace(/^System:\s*/i, '')
+                    .trim();
+            }
+
+            throw new Error('Invalid response format from Gemini API');
+
+        } catch (error) {
+            console.warn(`Gemini API Key ${this.currentKeyIndex + 1} failed: ${error.message}`);
+
+            // Mark current key as failed and rotate for NEXT time (so we don't start with bad key)
+            this.markKeyFailed();
+            this.rotateKey();
+
+            // INSTANT FALLBACK to Groq - No retries, no waiting
+            console.log('⚡ Instant fallback: Switching to Groq API...');
+
+            try {
+                return await this.makeGroqRequest(prompt);
+            } catch (groqError) {
+                console.error('Groq fallback also failed:', groqError.message);
+                throw new Error('All AI providers exhausted. Please check your connection.');
+            }
+        }
     }
 
     // Fallback questions when API is unavailable
     getFallbackQuestion(interviewType, index = 0) {
         const fallbacks = {
             'dsa': [
-                "**Two Sum**\nGiven an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n\nExample:\nInput: nums = [2,7,11,15], target = 9\nOutput: [0,1]\nExplanation: nums[0] + nums[1] = 2 + 7 = 9",
-                "**Valid Parentheses**\nGiven a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.\n\nExample:\nInput: s = '()[]{}'\nOutput: true",
-                "**Maximum Subarray**\nFind the contiguous subarray with the largest sum.\n\nExample:\nInput: nums = [-2,1,-3,4,-1,2,1,-5,4]\nOutput: 6 (subarray [4,-1,2,1])"
+                "[TYPE:CODING] Alright, here's a problem for you. Given an array of integers and a target number, find two numbers in the array that add up to the target. Return their indices.\n\n**Example:**\nInput: nums = [2, 7, 11, 15], target = 9\nOutput: [0, 1]\nExplanation: The numbers at indices 0 and 1 add up to 9.\n\n**Constraints:**\n- Each input has exactly one solution\n- You cannot use the same element twice\n\n[PATTERN:hash_table]",
+                "[TYPE:CODING] Here's a problem for you. Given a string containing only parentheses characters - round (), square [], and curly {} brackets - determine if the brackets are balanced and properly nested.\n\n**Example:**\nInput: s = '()[]{}'\nOutput: true\n\nInput: s = '([)]'\nOutput: false\n\n**Constraints:**\n- The string only contains bracket characters\n- An empty string is considered valid\n\n[PATTERN:stack_queue]",
+                "[TYPE:CODING] Let's try this one. Given an integer array, find the contiguous subarray with the largest sum and return that sum.\n\n**Example:**\nInput: nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]\nOutput: 6\nExplanation: The subarray [4, -1, 2, 1] has the largest sum.\n\n**Constraints:**\n- Array can contain negative numbers\n- At least one element exists\n\n[PATTERN:dp]"
             ],
             'system-design': [
                 "Let's design a URL shortening service like bit.ly. How would you approach the system design? Consider the scale of handling millions of URLs.",
@@ -144,24 +275,62 @@ class GeminiService {
         return questions[index % questions.length];
     }
 
-    // Generate interview questions based on type
-    async generateInterviewQuestions(interviewType, customRole = '', previousQuestions = []) {
+    // DSA Patterns for tagging
+    dsaPatterns = [
+        'sliding_window', 'two_pointer', 'binary_search', 'dp',
+        'graphs', 'trees', 'stack_queue', 'recursion', 'greedy', 'trie'
+    ];
+
+    // System Design patterns
+    sdPatterns = [
+        'scalability', 'caching', 'load_balancing', 'database_design',
+        'microservices', 'cdn', 'message_queues', 'rate_limiting'
+    ];
+
+    // Get difficulty modifier for prompts
+    getDifficultyPrompt(difficulty, companyTarget) {
+        const difficultyMap = {
+            beginner: 'easy difficulty, focusing on fundamentals. Keep explanations simple. Ask straightforward questions.',
+            intermediate: 'medium difficulty with some edge cases. Include follow-up probes. Test practical understanding.',
+            advanced: 'hard difficulty with complex scenarios. Deep dive into trade-offs. Expect optimal solutions and edge case handling.'
+        };
+
+        const companyMap = {
+            faang: 'This is for a FAANG/Big Tech interview. Expect high standards, optimal solutions, and strong system design thinking.',
+            product: 'This is for a product-based company. Focus on practical problem-solving and real-world applications.',
+            service: 'This is for a service-based company. Focus on fundamental concepts and clear communication.',
+            startup: 'This is for a startup interview. Focus on practical, quick solutions and adaptability.'
+        };
+
+        return `${difficultyMap[difficulty] || difficultyMap.intermediate}\n${companyMap[companyTarget] || companyMap.product}`;
+    }
+
+    // Generate interview questions based on type with config support
+    async generateInterviewQuestions(interviewType, customRole = '', previousQuestions = [], config = {}) {
+        const { difficulty = 'intermediate', companyTarget = 'product', techStack = 'javascript' } = config;
+        const difficultyContext = this.getDifficultyPrompt(difficulty, companyTarget);
+
         const prompts = {
             'system-design': `You are an expert technical interviewer at a top tech company. Generate a unique system design interview question.
 
 Context: This is a ${interviewType} interview.
-${previousQuestions.length > 0 ? `Previously asked: ${previousQuestions.join(', ')}. Give something DIFFERENT.` : ''}
+${difficultyContext}
+${previousQuestions.length > 0 ? `Previously asked: ${previousQuestions.slice(-2).join(', ')}. Give something DIFFERENT.` : ''}
 
 Generate ONE thoughtful system design question. Examples of topics:
 - Design a URL shortener, video streaming platform, chat system, payment system, notification system, search engine, etc.
 - Focus on scalability, availability, consistency, and performance.
+
+At the end of your question, add a hidden tag in this format: [PATTERN:scalability] or [PATTERN:caching] etc.
+Available patterns: ${this.sdPatterns.join(', ')}
 
 Respond with ONLY the question text, nothing else. Make it conversational like a real interviewer would ask.`,
 
             'dbms': `You are an expert database and SQL interviewer. Generate a unique DBMS interview question.
 
 Context: This is a ${interviewType} interview.
-${previousQuestions.length > 0 ? `Previously asked: ${previousQuestions.join(', ')}. Give something DIFFERENT.` : ''}
+${difficultyContext}
+${previousQuestions.length > 0 ? `Previously asked: ${previousQuestions.slice(-2).join(', ')}. Give something DIFFERENT.` : ''}
 
 Topics can include:
 - SQL queries (joins, subqueries, aggregations)
@@ -173,27 +342,74 @@ Topics can include:
 
 Respond with ONLY the question text, nothing else. Make it conversational.`,
 
-            'dsa': `You are an expert DSA/coding interviewer. Generate a unique algorithmic interview question.
+            'dsa': `You are an expert DSA interviewer at a ${companyTarget === 'faang' ? 'FAANG' : companyTarget} company conducting a REAL technical coding interview.
 
-Context: This is a ${interviewType} interview.
-${previousQuestions.length > 0 ? `Previously asked: ${previousQuestions.join(', ')}. Give something DIFFERENT.` : ''}
+${difficultyContext}
+Preferred language: ${techStack}
+Question number: ${previousQuestions.length + 1}
+${previousQuestions.length > 0 ? `Previously discussed topics:\n${previousQuestions.slice(-3).join('\n')}\n\nIMPORTANT: Ask about a COMPLETELY DIFFERENT pattern/topic.` : ''}
 
-Topics can include:
-- Arrays, strings, linked lists
-- Trees, graphs, dynamic programming
-- Sorting, searching, two pointers
-- Stack, queue, heap
-- Recursion, backtracking
+=== FAANG DSA INTERVIEW FORMAT ===
 
-Respond with ONLY the question in the format:
-**Problem Title**
-[Problem description with input/output examples]
+This interview should feel like a REAL FAANG coding interview:
+1. CODING IS PRIMARY - Every main question should be a coding problem
+2. Theory comes as FOLLOW-UP questions about the code (complexity, edge cases, optimization)
 
-Make it like a real LeetCode-style problem.`,
+INTERVIEW STRUCTURE:
+${previousQuestions.length === 0 ? `
+QUESTION 1 - START WITH CODING (Easy/Medium)
+- Present a proper LeetCode-style coding problem
+- Include: Problem statement, 1-2 examples with input/output, constraints
+- Topics: Arrays, Strings, Hash Maps, Two Pointers (warm-up patterns)
+- END TAG: [TYPE:CODING]
+` : previousQuestions.length === 1 ? `
+QUESTION 2 - CODING (Medium difficulty)
+- Present another coding problem, DIFFERENT pattern from before
+- Include: Problem statement, examples, constraints
+- Topics: Sliding Window, Binary Search, Stack/Queue, Linked Lists
+- If they solved Q1 well, increase difficulty slightly
+- END TAG: [TYPE:CODING]
+` : `
+QUESTION 3+ - CODING (Medium/Hard)
+- Continue with challenging coding problems
+- Include: Clear problem statement, examples, constraints
+- Topics: Trees, Graphs, DP, Recursion, Backtracking
+- Match difficulty to candidate's performance
+- END TAG: [TYPE:CODING]
+`}
+
+DSA PATTERNS TO COVER: ${this.dsaPatterns.join(', ')}
+
+QUESTION FORMAT:
+\`\`\`
+[Natural intro like "Alright, here's a problem for you..."]
+
+[Problem description - describe the task clearly in 2-4 sentences WITHOUT naming the problem]
+
+**Example 1:**
+Input: [input]
+Output: [output]
+Explanation: [brief explanation]
+
+**Constraints:**
+- [constraint 1]
+- [constraint 2]
+
+[PATTERN:pattern_name] [TYPE:CODING]
+\`\`\`
+
+CRITICAL RULES:
+1. ALWAYS start with a coding problem, not theory
+2. Be conversational ("Let's try this one...", "Here's a problem for you...")
+3. Keep problems focused - one clear objective
+4. MUST include [TYPE:CODING] tag at the end
+5. Theory questions come ONLY as follow-ups after they submit code
+6. **NEVER reveal the famous problem name** (don't say "Two Sum", "Valid Parentheses", etc.) - describe the problem naturally instead`,
 
             'custom': `You are an expert technical interviewer. Generate a unique interview question for a ${customRole || 'Software Developer'} position.
 
-${previousQuestions.length > 0 ? `Previously asked: ${previousQuestions.join(', ')}. Give something DIFFERENT.` : ''}
+${difficultyContext}
+${previousQuestions.length > 0 ? `Previously asked: ${previousQuestions.slice(-2).join(', ')}. Give something DIFFERENT.` : ''}
 
 The question should be relevant to the role and can be:
 - Technical concepts related to the role
@@ -230,24 +446,126 @@ Respond with ONLY the follow-up question text. Be conversational and encouraging
         return await this.makeRequest(prompt);
     }
 
-    // Evaluate user's answer
+    // Evaluate user's answer - handles "I don't know" realistically
     async evaluateAnswer(question, answer, interviewType) {
-        const prompt = `You are an expert technical interviewer evaluating a candidate's response.
+        // Detect if the user doesn't know or gave a weak response
+        const dontKnowPatterns = [
+            /i don'?t know/i, /no idea/i, /not sure/i, /can'?t answer/i,
+            /skip/i, /pass/i, /i'?m stuck/i, /don'?t remember/i,
+            /i forgot/i, /no clue/i, /sorry/i, /i give up/i,
+            /unable to/i, /difficult for me/i
+        ];
+
+        const isStuckResponse = dontKnowPatterns.some(pattern => pattern.test(answer)) ||
+            answer.trim().length < 15;
+
+        let prompt;
+
+        if (isStuckResponse) {
+            // Special handling for "I don't know" - act like a real interviewer
+            prompt = `You are a supportive technical interviewer. The candidate just said they don't know or are stuck.
+
+Interview Type: ${interviewType}
+Question: "${question}"
+Candidate's Response: "${answer}"
+
+IMPORTANT: The candidate is stuck. As a REAL supportive interviewer:
+
+1. FIRST - Start your response with an EXPLICIT acknowledgment like:
+   - "That's perfectly okay! Not knowing is the first step to learning."
+   - "No problem at all! Let me help you think through this."
+   - "Hey, that's fine! Everyone gets stuck sometimes."
+   
+2. THEN - Give ONE of these (pick the most helpful):
+   - A small hint (without giving away the answer)
+   - A simpler version of the same question
+   - A related easier warm-up question
+
+Your ENTIRE response must be in this JSON format:
+{
+    "score": 25,
+    "feedback": "<Your encouraging acknowledgment here - must start with something like 'That's okay!' or 'No problem!'>",
+    "strengths": ["Being honest about limitations"],
+    "improvements": ["${interviewType} fundamentals"],
+    "followUp": "<Your ONE helpful hint or simpler question here>"
+}
+
+CRITICAL RULES:
+- feedback MUST start with an encouraging phrase acknowledging they're stuck
+- followUp should be ONE simple question or hint, not multiple
+- Be warm and supportive, not robotic
+- DO NOT ask multiple questions in followUp`;
+        } else {
+            // Normal evaluation for actual attempts
+            prompt = `You are a friendly technical interviewer having a CONVERSATION with a candidate.
 
 Interview Type: ${interviewType}
 Question: "${question}"
 Candidate's Answer: "${answer}"
 
-Evaluate the answer and respond in this JSON format ONLY:
+Respond like you're TALKING to them, not reading from a script:
+1. React naturally to what they said ("Ah, interesting point!", "Right, that's correct!", "Hmm, let me ask you...")
+2. If they're on the right track, encourage them and dig deeper
+3. Speak in a warm, conversational tone - like a helpful senior developer
+
+For "improvements", prioritize using these STANDARD KEYWORDS if they apply (so we can recommend resources):
+[DSA]: sliding_window, two_pointer, binary_search, dp, graphs, trees, recursion, stack_queue, linked_list, array, hash_table, string, sorting, heap, greedy, trie
+[System Design]: scalability, caching, database_design, load_balancing, microservices, cdn, api_design
+[CS Core]: dbms, os, cn, sql, normalization, transactions
+[Soft Skills]: communication, confidence, clarity, structured_thinking
+
+Respond in this JSON format ONLY:
 {
     "score": <number 0-100>,
-    "feedback": "<brief constructive feedback>",
+    "feedback": "<one short sentence reacting to their answer>",
     "strengths": ["<strength 1>", "<strength 2>"],
-    "improvements": ["<area 1>", "<area 2>"],
-    "followUp": "<optional follow-up question or null>"
+    "improvements": ["<keyword_from_list_above>", "<specific_area>"],
+    "followUp": "<your natural follow-up question>"
 }
 
-Be fair but thorough in your evaluation.`;
+CONVERSATION STYLE EXAMPLES for followUp:
+- "Nice! So tell me, what happens when..."
+- "Ah, good thinking! Now what if we had to..."
+- "Right, exactly! Can you walk me through how..."
+- "Interesting approach! What would you do if..."
+
+IMPORTANT:
+- Sound like a PERSON, not a robot reading questions
+- Keep it brief and conversational
+- One question at a time in followUp
+${interviewType === 'dsa' ? `
+
+=== FAANG-STYLE DSA FOLLOW-UPS ===
+After the candidate submits code, ask 1-2 theoretical follow-ups about their solution:
+
+FOLLOW-UP TYPES (pick ONE based on score):
+1. TIME/SPACE COMPLEXITY (if score >= 60):
+   - "Nice solution! What's the time complexity? Can you walk me through it?"
+   - "Good work! What about space complexity - how much extra memory are we using?"
+   
+2. OPTIMIZATION (if score >= 70):
+   - "This works! Can you think of a way to optimize it further?"
+   - "Great! What if the input was 10x larger - would your approach still work?"
+   
+3. EDGE CASES (if score >= 50):
+   - "What edge cases should we handle here?"
+   - "What happens if the input is empty or has duplicates?"
+   
+4. ALTERNATIVE APPROACH (if score >= 80):
+   - "Excellent! Is there another way to solve this?"
+   - "Can you think of a different data structure that might help?"
+
+5. DEBUGGING HELP (if score < 50):
+   - "I see what you're trying to do. What if we started with [hint]?"
+   - "Close! Think about what happens when [edge case]..."
+
+RULES:
+- After 1-2 follow-ups on current problem, move to a NEW coding problem
+- followUp should be a CONCEPT question about their code, NOT a new coding problem
+- Do NOT add [TYPE:CODING] - keep it conversational
+- If candidate answered well with good complexity analysis, acknowledge and move to next problem
+` : ''}`;
+        }
 
         try {
             const response = await this.makeRequest(prompt);
@@ -258,20 +576,133 @@ Be fair but thorough in your evaluation.`;
             }
             // Fallback
             return {
-                score: 70,
-                feedback: response,
-                strengths: ['Good attempt'],
+                score: isStuckResponse ? 30 : 70,
+                feedback: isStuckResponse
+                    ? "No problem! Let me give you a hint to help you think about this..."
+                    : response,
+                strengths: isStuckResponse ? ['Honest about limitations'] : ['Good attempt'],
                 improvements: ['Could elaborate more'],
-                followUp: null
+                followUp: isStuckResponse
+                    ? "Let's break this down - what's the first thing you'd consider when approaching this problem?"
+                    : null
             };
         } catch (error) {
             console.error('Error evaluating answer:', error);
             return {
-                score: 65,
-                feedback: 'Could not fully evaluate. Keep practicing!',
-                strengths: ['Attempted the question'],
+                score: isStuckResponse ? 30 : 65,
+                feedback: isStuckResponse
+                    ? "That's okay! Let me simplify this for you."
+                    : 'Could not fully evaluate. Keep practicing!',
+                strengths: isStuckResponse ? ['Honest'] : ['Attempted the question'],
                 improvements: ['Try to be more specific'],
-                followUp: null
+                followUp: isStuckResponse
+                    ? "Let's start simpler - can you tell me what you do understand about this topic?"
+                    : null
+            };
+        }
+    }
+
+    // Thorough code evaluation for DSA problems with FAANG-style follow-ups
+    async evaluateCode(question, code, language) {
+        const prompt = `You are an expert code reviewer at a FAANG company conducting a technical interview.
+
+PROBLEM:
+${question}
+
+CANDIDATE'S CODE (${language}):
+\`\`\`${language}
+${code}
+\`\`\`
+
+THOROUGH CODE REVIEW - Analyze the code like a FAANG interviewer would:
+
+1. **CORRECTNESS** (0-30 points):
+   - Does it solve the problem correctly?
+   - Does it handle the given examples?
+   - Are there logical errors?
+
+2. **EDGE CASES** (0-20 points):
+   - Empty input handling
+   - Single element cases
+   - Negative numbers (if applicable)
+   - Overflow/underflow potential
+   - Duplicates handling
+
+3. **TIME COMPLEXITY** (0-25 points):
+   - What is the actual time complexity?
+   - Is it optimal for this problem?
+   - Any unnecessary operations?
+
+4. **SPACE COMPLEXITY** (0-15 points):
+   - Extra space used
+   - In-place optimization possible?
+
+5. **CODE QUALITY** (0-10 points):
+   - Variable naming
+   - Code structure
+   - Readability
+
+Respond in this EXACT JSON format:
+{
+    "score": <total 0-100>,
+    "correctness": {
+        "score": <0-30>,
+        "issues": ["list of correctness issues if any"],
+        "works": <true/false>
+    },
+    "timeComplexity": {
+        "actual": "O(?)",
+        "optimal": "O(?)",
+        "isOptimal": <true/false>
+    },
+    "spaceComplexity": {
+        "actual": "O(?)",
+        "canImprove": <true/false>
+    },
+    "edgeCases": {
+        "handled": ["cases handled"],
+        "missed": ["cases missed"]
+    },
+    "feedback": "<2-3 sentence natural feedback like a real interviewer>",
+    "strengths": ["strength1", "strength2"],
+    "improvements": ["improvement1", "improvement2"],
+    "followUp": "<ONE follow-up question about their code - ask about complexity, edge case, or optimization>"
+}
+
+FOLLOW-UP QUESTION EXAMPLES (pick ONE based on the code):
+- If code works but not optimal: "This works! What's the time complexity? Can we do better?"
+- If missing edge cases: "Good solution! What happens if the input is empty?"
+- If optimal: "Excellent! Can you explain why this is O(n) time?"
+- If has bugs: "I see an issue here - what happens when [edge case]?"
+
+Be conversational and encouraging, like a real interviewer would be.`;
+
+        try {
+            const response = await this.makeRequest(prompt);
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const result = JSON.parse(jsonMatch[0]);
+                // Ensure followUp exists
+                if (!result.followUp) {
+                    result.followUp = result.score >= 70
+                        ? "Nice work! Can you walk me through the time and space complexity of your solution?"
+                        : "I see what you're trying to do. Can you trace through your code with the first example?";
+                }
+                return result;
+            }
+            throw new Error('Invalid JSON response');
+        } catch (error) {
+            console.error('Error evaluating code:', error);
+            return {
+                score: 60,
+                correctness: { score: 20, issues: [], works: true },
+                timeComplexity: { actual: 'O(n)', optimal: 'O(n)', isOptimal: true },
+                spaceComplexity: { actual: 'O(1)', canImprove: false },
+                edgeCases: { handled: [], missed: [] },
+                feedback: "I can see your approach. Let's discuss it further.",
+                strengths: ['Attempted solution'],
+                improvements: ['Could add more edge case handling'],
+                followUp: "Can you tell me the time complexity of your solution?"
             };
         }
     }

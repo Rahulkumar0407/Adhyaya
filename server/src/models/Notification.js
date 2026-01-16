@@ -21,7 +21,11 @@ const notificationSchema = new mongoose.Schema({
             'streak-reminder',
             'certificate-issued',
             'instructor-reply',
-            'system'
+            'wallet-credit',
+            'bonus',
+            'system',
+            'new-application',
+            'application-status'
         ],
         required: true
     },
@@ -34,43 +38,43 @@ const notificationSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    
+
     // Related entities
     relatedTo: {
         entityType: {
             type: String,
-            enum: ['course', 'topic', 'problem', 'quiz', 'order', 'badge', 'user']
+            enum: ['course', 'topic', 'problem', 'quiz', 'order', 'badge', 'user', 'job', 'application']
         },
         entityId: mongoose.Schema.Types.ObjectId
     },
-    
+
     // Action CTA
     action: {
         label: String,
         url: String
     },
-    
+
     // Priority
     priority: {
         type: String,
         enum: ['low', 'medium', 'high', 'urgent'],
         default: 'medium'
     },
-    
+
     // Status
     isRead: {
         type: Boolean,
         default: false
     },
     readAt: Date,
-    
+
     // Delivery channels
     channels: {
         inApp: { type: Boolean, default: true },
         email: { type: Boolean, default: false },
         push: { type: Boolean, default: false }
     },
-    
+
     // Metadata
     data: mongoose.Schema.Types.Mixed
 }, {
@@ -82,6 +86,6 @@ notificationSchema.index({ user: 1, isRead: 1, createdAt: -1 });
 notificationSchema.index({ user: 1, type: 1 });
 notificationSchema.index({ createdAt: -1 });
 
-const Notification = mongoose.model('Notification', notificationSchema);
+const Notification = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);
 
 export default Notification;

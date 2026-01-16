@@ -1,16 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-hot-toast';
+import api from '../services/api';
 import { io } from 'socket.io-client';
 import {
     Hash, Search, Pin, Info, Send, Paperclip, Settings,
     MessageSquare, Megaphone, Code, Server, Database, Briefcase,
     Coffee, Users, ArrowLeft, Crown, Flame, Clock, CheckCircle,
-    TrendingUp, Star, Sparkles, UserCheck, Calendar
+    TrendingUp, Star, Sparkles, UserCheck, Calendar, Trophy
 } from 'lucide-react';
+import { BabuaLeaderboard } from '../components/leaderboard';
 
 // Mentor Circle Section Component
-const MentorCircleSection = () => {
+const MentorCircleSection = ({ onJoin, isJoining }) => {
     const mentorshipFeatures = [
         { icon: Users, text: '25 students = 1 mentor', desc: 'Small groups for personal attention' },
         { icon: MessageSquare, text: 'Daily doubt-solving & guidance', desc: 'Get help when you need it' },
@@ -107,9 +110,19 @@ const MentorCircleSection = () => {
                         </div>
 
                         {/* CTA Button */}
-                        <button className="w-full mt-6 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold py-4 px-6 rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
-                            <Coffee className="w-5 h-5" />
-                            Join Mentor Circle
+                        <button
+                            onClick={onJoin}
+                            disabled={isJoining}
+                            className="w-full mt-6 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold py-4 px-6 rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isJoining ? (
+                                <span className="animate-pulse">Processing...</span>
+                            ) : (
+                                <>
+                                    <Coffee className="w-5 h-5" />
+                                    Join Mentor Circle
+                                </>
+                            )}
                         </button>
                         <p className="text-center text-amber-100/40 text-xs mt-3">
                             Limited seats · New batch every month
@@ -171,6 +184,7 @@ const channels = {
     community: [
         { id: 'announcements', name: 'Announcements', icon: Megaphone, hasNotification: false },
         { id: 'general', name: 'General Discussion', icon: MessageSquare },
+        { id: 'babua-board', name: 'Babua Board', icon: Trophy, isSpecial: true },
     ],
     learning: [
         { id: 'dsa', name: 'DSA Help', icon: Code },
@@ -210,7 +224,8 @@ const formatTime = (date) => {
 };
 
 export default function ChaiTapri() {
-    const { user, token } = useAuth();
+    const { user, token, refreshUser } = useAuth();
+    const navigate = useNavigate();
     const [activeChannel, setActiveChannel] = useState('general');
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState('');
@@ -219,6 +234,8 @@ export default function ChaiTapri() {
     const [loading, setLoading] = useState(true);
     const [socket, setSocket] = useState(null);
     const [showMentorCircle, setShowMentorCircle] = useState(false);
+    const [showLeaderboard, setShowLeaderboard] = useState(false);
+    const [isJoining, setIsJoining] = useState(false);
     const messagesEndRef = useRef(null);
 
     const userName = user?.name || 'Guest';
@@ -335,6 +352,41 @@ export default function ChaiTapri() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    const handleJoinMentorCircle = async () => {
+        if (!user) {
+            toast.error('Please login to join Mentor Circle');
+            navigate('/login');
+            return;
+        }
+
+        /* Check if already subscribed */
+        if (user.mentorCircleSubscription?.plan === 'premium') {
+            toast.success('You are already a member!');
+            return;
+        }
+
+        setIsJoining(true);
+        try {
+            const response = await api.post('/wallet/unlock-feature', { feature: 'mentorCircle' });
+            if (response.data.success) {
+                toast.success('Welcome to Mentor Circle! 🎉');
+                await refreshUser();
+                /* Maybe switch view or show success confetti */
+            }
+        } catch (error) {
+            console.error(error);
+            const msg = error.response?.data?.message || 'Join failed';
+            if (msg.includes('Insufficient balance')) {
+                toast.error('Insufficient balance! Redirecting to wallet...', { duration: 3000 });
+                setTimeout(() => navigate('/wallet'), 2000);
+            } else {
+                toast.error(msg);
+            }
+        } finally {
+            setIsJoining(false);
+        }
+    };
+
     return (
         <div className="h-screen flex" style={{ background: 'linear-gradient(135deg, #1a1410 0%, #2d241c 50%, #1a1410 100%)' }}>
             {/* Left Sidebar */}
@@ -361,11 +413,28 @@ export default function ChaiTapri() {
                         </div>
                         {channels.community.map((channel) => {
                             const Icon = channel.icon;
+                            // Handle Babua Board specially
+                            if (channel.id === 'babua-board') {
+                                return (
+                                    <button
+                                        key={channel.id}
+                                        onClick={() => { setShowLeaderboard(true); setShowMentorCircle(false); }}
+                                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all group ${showLeaderboard
+                                            ? 'bg-amber-500/20 text-amber-400'
+                                            : 'text-amber-100/60 hover:bg-amber-900/20 hover:text-amber-100'
+                                            }`}
+                                    >
+                                        <Icon className="w-4 h-4 text-amber-400" />
+                                        <span className="text-sm font-medium">{channel.name}</span>
+                                        <Flame className={`w-3 h-3 ml-auto ${showLeaderboard ? 'text-orange-400' : 'text-orange-500/50 group-hover:text-orange-400'}`} />
+                                    </button>
+                                );
+                            }
                             return (
                                 <button
                                     key={channel.id}
-                                    onClick={() => setActiveChannel(channel.id)}
-                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all ${activeChannel === channel.id
+                                    onClick={() => { setActiveChannel(channel.id); setShowLeaderboard(false); setShowMentorCircle(false); }}
+                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all ${activeChannel === channel.id && !showLeaderboard && !showMentorCircle
                                         ? 'bg-amber-600/20 text-amber-400'
                                         : 'text-amber-100/60 hover:bg-amber-900/20 hover:text-amber-100'
                                         }`}
@@ -409,7 +478,7 @@ export default function ChaiTapri() {
                             Premium
                         </div>
                         <button
-                            onClick={() => setShowMentorCircle(!showMentorCircle)}
+                            onClick={() => { setShowMentorCircle(true); setShowLeaderboard(false); }}
                             className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all group ${showMentorCircle
                                 ? 'bg-yellow-500/20 text-yellow-400 border-l-2 border-yellow-500'
                                 : 'text-amber-100/60 hover:bg-amber-900/20 hover:text-amber-100'
@@ -439,9 +508,33 @@ export default function ChaiTapri() {
                 </div>
             </div>
 
-            {/* Main Content Area - Chat or Mentor Circle */}
+            {/* Main Content Area - Chat, Mentor Circle, or Leaderboard */}
             <div className="flex-1 flex flex-col">
-                {showMentorCircle ? (
+                {showLeaderboard ? (
+                    /* Leaderboard View */
+                    <div className="flex-1 overflow-y-auto">
+                        {/* Leaderboard Header */}
+                        <div className="bg-[#1e1814]/80 backdrop-blur border-b border-amber-900/30 px-6 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Trophy className="w-5 h-5 text-amber-400" />
+                                <div>
+                                    <div className="font-bold text-white">Babua Board</div>
+                                    <div className="text-amber-100/40 text-sm">See who's grinding the hardest</div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowLeaderboard(false)}
+                                className="flex items-center gap-2 px-4 py-2 bg-amber-900/30 hover:bg-amber-900/50 text-amber-100 rounded-lg transition-colors"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                <span className="text-sm">Back to Chat</span>
+                            </button>
+                        </div>
+
+                        {/* Leaderboard Content */}
+                        <BabuaLeaderboard />
+                    </div>
+                ) : showMentorCircle ? (
                     /* Mentor Circle View */
                     <div className="flex-1 overflow-y-auto">
                         {/* Mentor Circle Header */}
@@ -463,7 +556,7 @@ export default function ChaiTapri() {
                         </div>
 
                         {/* Mentor Circle Content */}
-                        <MentorCircleSection />
+                        <MentorCircleSection onJoin={handleJoinMentorCircle} isJoining={isJoining} />
                     </div>
                 ) : (
                     /* Chat View */

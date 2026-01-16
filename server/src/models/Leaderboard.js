@@ -15,7 +15,7 @@ const leaderboardSchema = new mongoose.Schema({
         start: { type: Date, required: true },
         end: { type: Date, required: true }
     },
-    
+
     // Rankings
     rankings: [{
         user: {
@@ -32,7 +32,7 @@ const leaderboardSchema = new mongoose.Schema({
             timeSpent: Number
         }
     }],
-    
+
     // Metadata
     lastUpdated: {
         type: Date,
@@ -47,6 +47,6 @@ const leaderboardSchema = new mongoose.Schema({
 leaderboardSchema.index({ type: 1, category: 1, 'period.start': 1 });
 leaderboardSchema.index({ 'rankings.user': 1 });
 
-const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);
+const Leaderboard = mongoose.models.Leaderboard || mongoose.model('Leaderboard', leaderboardSchema);
 
 export default Leaderboard;

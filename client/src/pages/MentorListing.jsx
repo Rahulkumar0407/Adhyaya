@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-hot-toast';
 import {
     Search, Filter, Star, BadgeCheck, Phone, Calendar,
-    ChevronDown, X, Sliders, Users, Clock, Zap
+    ChevronDown, X, Sliders, Users, Clock, Zap, Lock
 } from 'lucide-react';
 import api from '../services/api';
 import MentorCard from '../components/mentorship/MentorCard';
@@ -197,6 +199,35 @@ const MentorListing = () => {
         minRating: '',
         isOnline: searchParams.get('online') === 'true'
     });
+    const { user, refreshUser } = useAuth();
+    const navigate = useNavigate();
+    const [unlocking, setUnlocking] = useState(false);
+
+    // Check if subscribed
+    const isSubscribed = user?.role === 'admin' || user?.role === 'mentor' || user?.mentorCircleSubscription?.plan === 'premium';
+
+    const handleUnlock = async () => {
+        if (unlocking) return;
+        setUnlocking(true);
+        try {
+            const response = await api.post('/wallet/unlock-feature', { feature: 'mentorCircle' });
+            if (response.data.success) {
+                toast.success('Member Circle Unlocked!');
+                await refreshUser();
+            }
+        } catch (error) {
+            console.error(error);
+            const msg = error.response?.data?.message || 'Unlock failed';
+            if (msg.includes('Insufficient balance')) {
+                toast.error('Insufficient balance! Redirecting to add funds...', { duration: 3000 });
+                setTimeout(() => navigate('/wallet'), 2000);
+            } else {
+                toast.error(msg);
+            }
+        } finally {
+            setUnlocking(false);
+        }
+    };
 
     const handleInstantCall = (mentor) => {
         if (!mentor.isOnline) return;
@@ -499,7 +530,7 @@ const MentorListing = () => {
                     />
 
                     {/* Main Content */}
-                    <div className="flex-1">
+                    <div className="flex-1 relative">
                         {/* Results count */}
                         <div className="mb-6">
                             <h1 className="text-2xl font-bold text-white">

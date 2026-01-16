@@ -267,7 +267,6 @@ export default function Settings() {
         { id: 'basic', label: 'Basic', icon: User, emoji: '👤' },
         { id: 'education', label: 'Education', icon: GraduationCap, emoji: '🎓' },
         { id: 'social', label: 'Social', icon: Globe, emoji: '🔗' },
-        { id: 'preferences', label: 'Settings', icon: Zap, emoji: '⚙️' },
     ];
 
     if (loading) {
@@ -652,83 +651,7 @@ export default function Settings() {
                         </div>
                     )}
 
-                    {/* Preferences */}
-                    {activeSection === 'preferences' && (
-                        <div className="relative">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/10 via-blue-500/5 to-cyan-500/10 rounded-3xl blur-xl"></div>
-                            <div className="relative bg-gradient-to-br from-orange-950/40 to-[#0f0a06]/60 backdrop-blur rounded-3xl border border-orange-800/30 p-8 overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500"></div>
-                                <Sparkles className="absolute top-4 right-4 w-6 h-6 text-orange-300/30" />
 
-                                <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                                        <Zap className="w-6 h-6 text-white" />
-                                    </div>
-                                    App Settings
-                                </h2>
-                                <p className="text-orange-100/50 text-sm mb-8">Apna experience customize karo! 🛠️</p>
-
-                                <div className="space-y-6">
-                                    <div className="group">
-                                        <label className="block text-sm text-orange-100/70 mb-4 flex items-center gap-2">
-                                            <RotateCcw className="w-4 h-4 text-cyan-500" />
-                                            Revision Mode Preference
-                                        </label>
-
-                                        <div className="grid md:grid-cols-2 gap-4">
-                                            <label className={`relative p-4 rounded-2xl border-2 transition-all cursor-pointer ${formData.revisionMode === 'adaptive'
-                                                ? 'bg-cyan-500/10 border-cyan-500/50'
-                                                : 'bg-orange-950/20 border-orange-900/30 hover:bg-orange-950/40'
-                                                }`}>
-                                                <input
-                                                    type="radio"
-                                                    name="revisionMode"
-                                                    value="adaptive"
-                                                    checked={formData.revisionMode === 'adaptive'}
-                                                    onChange={handleChange}
-                                                    className="absolute opacity-0"
-                                                />
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.revisionMode === 'adaptive' ? 'border-cyan-500' : 'border-gray-500'
-                                                        }`}>
-                                                        {formData.revisionMode === 'adaptive' && <div className="w-2.5 h-2.5 rounded-full bg-cyan-500" />}
-                                                    </div>
-                                                    <span className={`font-bold ${formData.revisionMode === 'adaptive' ? 'text-white' : 'text-gray-400'}`}>Adaptive Mode</span>
-                                                </div>
-                                                <p className="text-xs text-orange-100/50 pl-8">
-                                                    AI aapka plan banayega. Spaced repetition aur weak topics pe focus. Best for long-term retention. 🧠
-                                                </p>
-                                            </label>
-
-                                            <label className={`relative p-4 rounded-2xl border-2 transition-all cursor-pointer ${formData.revisionMode === 'manual'
-                                                ? 'bg-orange-500/10 border-orange-500/50'
-                                                : 'bg-orange-950/20 border-orange-900/30 hover:bg-orange-950/40'
-                                                }`}>
-                                                <input
-                                                    type="radio"
-                                                    name="revisionMode"
-                                                    value="manual"
-                                                    checked={formData.revisionMode === 'manual'}
-                                                    onChange={handleChange}
-                                                    className="absolute opacity-0"
-                                                />
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.revisionMode === 'manual' ? 'border-orange-500' : 'border-gray-500'
-                                                        }`}>
-                                                        {formData.revisionMode === 'manual' && <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />}
-                                                    </div>
-                                                    <span className={`font-bold ${formData.revisionMode === 'manual' ? 'text-white' : 'text-gray-400'}`}>Manual Mode</span>
-                                                </div>
-                                                <p className="text-xs text-orange-100/50 pl-8">
-                                                    Aap khud decide karein kya aur kab padhna hai. Full control aapke haath mein. 🛠️
-                                                </p>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Save Button - Profile styled */}
                     <div className="flex flex-col md:flex-row justify-end gap-4 pt-4">

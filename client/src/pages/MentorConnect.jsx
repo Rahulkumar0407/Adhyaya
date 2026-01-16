@@ -416,7 +416,7 @@ const MentorConnect = () => {
                 </div>
             </section>
 
-            {/* ===== BECOME A MENTOR CTA ===== */}
+            {/* ===== MENTOR LOGIN CTA ===== */}
             <section className="relative py-24 px-4">
                 <div className="max-w-4xl mx-auto">
                     <motion.div
@@ -429,37 +429,37 @@ const MentorConnect = () => {
                         <div className="relative z-10">
                             <div className="inline-flex items-center gap-2 px-5 py-2 bg-white/10 rounded-full mb-6 border border-white/10">
                                 <Sparkles className="w-4 h-4 text-orange-400" />
-                                <span className="text-white font-bold text-sm">Join 500+ Mentors</span>
+                                <span className="text-white font-bold text-sm">500+ Active Mentors</span>
                             </div>
 
                             <h2 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">
-                                Want to Earn by Helping Students?
+                                Already a Mentor?
                             </h2>
                             <p className="text-orange-100/80 text-lg mb-10 max-w-2xl mx-auto">
-                                Set your own rates, choose your hours, and help students crack interviews.
-                                Earn <span className="text-emerald-400 font-bold">₹3000-15000/month</span> in your free time.
+                                Login to your mentor dashboard to manage sessions, set availability, and track your earnings.
+                                Help students crack interviews and earn <span className="text-emerald-400 font-bold">₹3000-15000/month</span> in your free time.
                             </p>
 
                             <Link
-                                to="/become-mentor"
+                                to="/login?role=mentor"
                                 className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black uppercase tracking-widest rounded-2xl hover:shadow-[0_0_40px_rgba(249,115,22,0.5)] hover:scale-105 transition-all duration-500"
                             >
-                                Apply as Mentor
+                                Login as Mentor
                                 <ArrowRight className="w-6 h-6" />
                             </Link>
 
                             <div className="flex items-center justify-center gap-8 mt-10 text-slate-300 text-sm">
                                 <div className="flex items-center gap-2">
                                     <CheckCircle className="w-4 h-4 text-emerald-400" />
-                                    <span>Flexible Hours</span>
+                                    <span>Manage Sessions</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <CheckCircle className="w-4 h-4 text-emerald-400" />
-                                    <span>Set Your Rate</span>
+                                    <span>Set Availability</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <CheckCircle className="w-4 h-4 text-emerald-400" />
-                                    <span>Weekly Payouts</span>
+                                    <span>Track Earnings</span>
                                 </div>
                             </div>
                         </div>

@@ -15,5 +15,43 @@ export default defineConfig({
                 ws: true
             }
         }
+    },
+    build: {
+        // Enable minification
+        minify: 'terser',
+        terserOptions: {
+            compress: {
+                drop_console: true, // Remove console.log in production
+                drop_debugger: true
+            }
+        },
+        // Code splitting for better caching
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    // Vendor chunks - cached separately
+                    'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+                    'vendor-ui': ['framer-motion', 'lucide-react'],
+                    'vendor-query': ['@tanstack/react-query'],
+                    'vendor-utils': ['axios', 'date-fns']
+                }
+            }
+        },
+        // Increase chunk size warning limit
+        chunkSizeWarningLimit: 1000,
+        // Enable source maps for debugging (disable in production)
+        sourcemap: false
+    },
+    // Optimize dependencies
+    optimizeDeps: {
+        include: [
+            'react',
+            'react-dom',
+            'react-router-dom',
+            'framer-motion',
+            'lucide-react',
+            'axios',
+            '@tanstack/react-query'
+        ]
     }
 });

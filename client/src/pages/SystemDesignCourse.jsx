@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { gsap } from 'gsap';
 import {
     ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Play, CheckCircle,
-    Circle, Clock, BookOpen, Menu, X, Sparkles, Trophy, Zap, Target, Lock, Coins, Server
+    Circle, Clock, BookOpen, Menu, X, Sparkles, Trophy, Zap, Target, Lock, Coins, Server, Crown
 } from 'lucide-react';
 import {
     courseData, getAllLessons, getLessonById, getNextLesson,
@@ -14,6 +14,7 @@ import { recordActivity } from '../services/activityService';
 import UnderstandingModal from '../components/common/UnderstandingModal';
 import api from '../services/api';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 export default function SystemDesignCourse() {
     const { user, token } = useAuth();
@@ -37,6 +38,7 @@ export default function SystemDesignCourse() {
     });
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [selectedLessonForFeedback, setSelectedLessonForFeedback] = useState(null);
+    const [subscription, setSubscription] = useState(null);
 
     // Refs for GSAP animations
     const heroRef = useRef(null);
@@ -56,6 +58,25 @@ export default function SystemDesignCourse() {
     useEffect(() => {
         localStorage.setItem('userPoints', userPoints.toString());
     }, [userPoints]);
+
+    // Fetch subscription status
+    useEffect(() => {
+        const fetchSubscription = async () => {
+            try {
+                const res = await api.get('/adaptive-revision/subscription');
+                if (res.data.success) {
+                    setSubscription(res.data.data);
+                }
+            } catch (error) {
+                setSubscription({
+                    plan: 'free_trial',
+                    lecturesUsed: 0,
+                    maxFreeLectures: 3
+                });
+            }
+        };
+        fetchSubscription();
+    }, []);
 
     // GSAP animations on mount
     useEffect(() => {
@@ -180,11 +201,42 @@ export default function SystemDesignCourse() {
         if (wasCompleted) {
             setCompletedLessons((prev) => prev.filter((id) => id !== lessonIdToToggle));
         } else {
-            // Trigger feedback modal for current lesson if not already completed
+            // Check if user can use AI features
+            const isPremium = subscription?.plan === 'premium';
+            const canUseAIFeatures = isPremium || (
+                subscription?.plan === 'free_trial' &&
+                (subscription?.lecturesUsed || 0) < (subscription?.maxFreeLectures || 3)
+            );
+
             if (lessonIdToToggle === lessonId) {
-                const lessonToFeedback = getLessonById(lessonIdToToggle);
-                setSelectedLessonForFeedback(lessonToFeedback);
-                setShowFeedbackModal(true);
+                if (canUseAIFeatures) {
+                    const lessonToFeedback = getLessonById(lessonIdToToggle);
+                    setSelectedLessonForFeedback(lessonToFeedback);
+                    setShowFeedbackModal(true);
+                } else {
+                    // Free users who exceeded limit: just mark complete + show upsell
+                    setCompletedLessons((prev) => [...prev, lessonIdToToggle]);
+                    toast.success('Lesson marked as complete!', {
+                        duration: 2000,
+                        icon: '✅'
+                    });
+                    toast((
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                                <Crown className="w-4 h-4 text-yellow-400" />
+                                <span className="font-bold">Upgrade to Premium</span>
+                            </div>
+                            <span className="text-sm opacity-90">Get AI-powered personalized revision schedules!</span>
+                        </div>
+                    ), {
+                        duration: 5000,
+                        style: {
+                            background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                            color: 'white',
+                            padding: '12px 16px',
+                        },
+                    });
+                }
             } else {
                 setCompletedLessons((prev) => [...prev, lessonIdToToggle]);
             }

@@ -12,13 +12,18 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: function () {
-            // Password required only if not using OAuth
-            return !this.googleId;
+            // Password required only if not using OAuth or Firebase
+            return !this.googleId && !this.firebaseUid;
         },
         minlength: 6,
         select: false
     },
     googleId: {
+        type: String,
+        sparse: true,
+        unique: true
+    },
+    firebaseUid: {
         type: String,
         sparse: true,
         unique: true
@@ -70,6 +75,14 @@ const userSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    banReason: String,
+    bannedUntil: Date,
+
+    // Admin-granted permission to change password
+    canChangePassword: {
+        type: Boolean,
+        default: false
     },
 
     // Streak & Engagement
@@ -168,6 +181,37 @@ const userSchema = new mongoose.Schema({
         default: 'unset'
     },
 
+    // Adaptive Revision Subscription
+    adaptiveRevisionSubscription: {
+        plan: {
+            type: String,
+            enum: ['free_trial', 'premium', 'expired'],
+            default: 'free_trial'
+        },
+        lecturesUsed: {
+            type: Number,
+            default: 0
+        },
+        maxFreeLectures: {
+            type: Number,
+            default: 3
+        },
+        subscribedAt: Date,
+        expiresAt: Date,
+        paymentId: String
+    },
+
+    // Mentor Circle Subscription
+    mentorCircleSubscription: {
+        plan: {
+            type: String,
+            enum: ['free', 'premium', 'expired'],
+            default: 'free'
+        },
+        subscribedAt: Date,
+        expiresAt: Date,
+        paymentId: String
+    },
 
     // Community
     currentPod: {
@@ -175,23 +219,28 @@ const userSchema = new mongoose.Schema({
         ref: 'Pod'
     },
 
-    // Hiring Profile (for reverse recruiting)
-    hiringProfile: {
-        isActive: { type: Boolean, default: false },
-        resumeUrl: String,
-        githubUrl: String,
-        linkedinUrl: String,
-        skills: [String],
-        experience: String,
-        preferredRoles: [String],
-        expectedSalary: String,
-        location: String,
-        remotePreference: {
-            type: String,
-            enum: ['remote', 'onsite', 'hybrid', 'any'],
-            default: 'any'
-        }
+    // Refer and Earn
+    referralCode: {
+        type: String,
+        unique: true,
+        sparse: true,
+        trim: true
     },
+    referredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    referralClaimed: {
+        type: Boolean,
+        default: false
+    },
+    referralCount: {
+        type: Number,
+        default: 0
+    },
+
+
+    // Tokens
 
     // Tokens
     refreshToken: {

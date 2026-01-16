@@ -5,13 +5,15 @@ import * as THREE from 'three';
 import axios from 'axios';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-hot-toast';
 import {
     Home, Mic, RotateCcw, Gift, Bell, Calendar, Clock, Brain,
     CheckCircle2, AlertTriangle, BookOpen, HelpCircle, Code2,
     MessageSquare, ArrowRight, TrendingUp, X, RefreshCw, Award, MessageCircle,
-    Target, Flame, ChevronRight, ChevronLeft
+    Target, Flame, ChevronRight, ChevronLeft, Sparkles, Crown
 } from 'lucide-react';
 import UnderstandingModal from '../components/common/UnderstandingModal';
+import UpgradeModal from '../components/common/UpgradeModal';
 
 // ===== THREE.JS ANIMATED BACKGROUND =====
 function RevisionBackground() {
@@ -344,6 +346,10 @@ export default function AdaptiveRevision({ onSwitchMode }) {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [calendarRevisions, setCalendarRevisions] = useState([]);
 
+    // Subscription state
+    const [subscription, setSubscription] = useState(null);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
 
     // Navigation items
     const navItems = [
@@ -387,10 +393,58 @@ export default function AdaptiveRevision({ onSwitchMode }) {
             );
             setUpcomingRevisions(filtered);
 
+            // Fetch subscription separately to avoid blocking other data
+            try {
+                const subRes = await api.get('/adaptive-revision/subscription');
+                if (subRes.data.success && subRes.data.data) {
+                    setSubscription(subRes.data.data);
+                } else {
+                    // Default to free trial if API returns unexpected format
+                    setSubscription({
+                        plan: 'free_trial',
+                        lecturesUsed: 0,
+                        maxFreeLectures: 3,
+                        remaining: 3
+                    });
+                }
+            } catch (subError) {
+                console.error('Failed to fetch subscription:', subError);
+                // Default to free trial on error
+                setSubscription({
+                    plan: 'free_trial',
+                    lecturesUsed: 0,
+                    maxFreeLectures: 3,
+                    remaining: 3
+                });
+            }
+
         } catch (error) {
             console.error('Failed to fetch revision data:', error);
+            // Still set default subscription so banner shows
+            setSubscription({
+                plan: 'free_trial',
+                lecturesUsed: 0,
+                maxFreeLectures: 3,
+                remaining: 3
+            });
         } finally {
             setLoading(false);
+        }
+    };
+
+
+    const handleUpgrade = async () => {
+        try {
+            // Demo upgrade - normally would integrate payment gateway here
+            await api.post('/adaptive-revision/subscribe');
+
+            // Refresh data
+            fetchData();
+            setShowUpgradeModal(false);
+
+            // Show success message or confetti here ideally
+        } catch (error) {
+            console.error('Upgrade failed:', error);
         }
     };
 
@@ -406,13 +460,57 @@ export default function AdaptiveRevision({ onSwitchMode }) {
         }
     }, [selectedDate, calendarRevisions]);
 
-    const handleStartRevision = (revision) => {
+    const handleStartRevision = async (revision) => {
+        // Check if user is on premium or has free trial lectures remaining
+        const isPremium = subscription?.plan === 'premium';
+        const canUseAIFeatures = isPremium || (
+            subscription?.plan === 'free_trial' &&
+            (subscription?.lecturesUsed || 0) < (subscription?.maxFreeLectures || 3)
+        );
+
         if (revision.revisionType === 'quiz') {
-            // Navigate to quiz
+            // Navigate to quiz page - quizzes work for all users
             window.location.href = `/revision-quiz/${revision._id}`;
+        } else if (canUseAIFeatures) {
+            // Premium users or users with free lectures remaining: show understanding modal
+            // This modal submits feedback and generates AI revision schedules
+            setSelectedTopic({
+                revisionId: revision._id,
+                topicId: revision.topicId,
+                topicTitle: revision.topicTitle,
+                course: revision.course,
+                revisionType: revision.revisionType,
+                whyScheduled: revision.whyScheduled
+            });
+            setShowUnderstandingModal(true);
         } else {
-            // Mark as completed for non-quiz types
-            handleCompleteRevision(revision._id);
+            // Free users without remaining lectures: just mark as complete
+            // and show upsell message
+            try {
+                await api.post(`/adaptive-revision/complete/${revision._id}`);
+                toast.success('Revision marked as complete!', {
+                    duration: 3000,
+                    icon: '✅'
+                });
+                // Show premium upsell
+                toast((
+                    <div className="flex flex-col gap-1">
+                        <span className="font-bold">💡 Upgrade to Premium</span>
+                        <span className="text-sm">Get AI-powered personalized revision schedules based on your understanding!</span>
+                    </div>
+                ), {
+                    duration: 5000,
+                    style: {
+                        background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                        color: 'white',
+                        padding: '12px 16px',
+                    },
+                });
+                fetchData();
+            } catch (error) {
+                console.error('Failed to complete revision:', error);
+                toast.error('Failed to mark as complete');
+            }
         }
     };
 
@@ -427,15 +525,32 @@ export default function AdaptiveRevision({ onSwitchMode }) {
 
     const handleUnderstandingSubmit = async (data) => {
         try {
-            await api.post('/adaptive-revision/feedback', {
+            // Submit the understanding feedback
+            const res = await api.post('/adaptive-revision/feedback', {
                 ...data,
-                topicId: selectedTopic.topicSlug,
+                topicId: selectedTopic.topicId,
+                topicTitle: selectedTopic.topicTitle,
                 course: selectedTopic.course
             });
+
+            if (res.data.data?.subscription) {
+                setSubscription(res.data.data.subscription);
+            }
+
+            // Also mark the revision as completed
+            if (selectedTopic?.revisionId) {
+                await api.post(`/adaptive-revision/complete/${selectedTopic.revisionId}`);
+            }
+
             setShowUnderstandingModal(false);
+            setSelectedTopic(null);
             fetchData();
         } catch (error) {
             console.error('Failed to submit understanding:', error);
+            if (error.response?.status === 403 && error.response?.data?.requiresUpgrade) {
+                setShowUnderstandingModal(false);
+                setShowUpgradeModal(true);
+            }
         }
     };
 
@@ -477,6 +592,19 @@ export default function AdaptiveRevision({ onSwitchMode }) {
                     )}
                 </div>
 
+                {/* Free Trial Banner / Upgrade Button */}
+                {subscription && subscription.plan !== 'premium' && (
+                    <div className="flex justify-end mb-6">
+                        <button
+                            onClick={() => setShowUpgradeModal(true)}
+                            className="bg-gradient-to-r from-violet-600 to-cyan-500 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 hover:shadow-lg hover:shadow-violet-500/20 transition-all border border-white/10"
+                        >
+                            <Crown className="w-4 h-4" />
+                            Upgrade to Premium
+                        </button>
+                    </div>
+                )}
+
                 {/* Stats Row */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     <StatCard
@@ -508,6 +636,35 @@ export default function AdaptiveRevision({ onSwitchMode }) {
                         color="bg-gradient-to-br from-violet-500 to-purple-600"
                     />
                 </div>
+
+                {/* Subscription Status Banner */}
+                {subscription && subscription.plan !== 'premium' && (
+                    <div className="mb-8">
+                        <div className="bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border border-violet-500/20 rounded-2xl p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                                    <Sparkles className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-white font-bold">
+                                        {subscription.plan === 'expired' ? 'Premium Expired' : 'Free Trial Active'}
+                                    </h3>
+                                    <p className="text-slate-400 text-sm">
+                                        {subscription.plan === 'expired'
+                                            ? 'Renew your subscription to continue'
+                                            : <>You've used <span className="text-white">{subscription.lecturesUsed || 0}/{subscription.maxFreeLectures || 3}</span> free lectures</>}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowUpgradeModal(true)}
+                                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors"
+                            >
+                                {subscription.plan === 'expired' ? 'Renew Now' : 'Upgrade Now'}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Overdue Section */}
                 {overdueRevisions.length > 0 && (
@@ -641,6 +798,14 @@ export default function AdaptiveRevision({ onSwitchMode }) {
                 onClose={() => setShowUnderstandingModal(false)}
                 onSubmit={handleUnderstandingSubmit}
                 topic={selectedTopic}
+            />
+
+            {/* Upgrade Modal */}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                onUpgrade={handleUpgrade}
+                subscription={subscription}
             />
         </div>
     );

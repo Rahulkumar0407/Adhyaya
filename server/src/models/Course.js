@@ -164,6 +164,6 @@ courseSchema.virtual('completionRate').get(function () {
     return Math.round((this.completionCount / this.enrollmentCount) * 100);
 });
 
-const Course = mongoose.model('Course', courseSchema);
+const Course = mongoose.models.Course || mongoose.model('Course', courseSchema);
 
 export default Course;

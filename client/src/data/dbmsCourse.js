@@ -18,7 +18,7 @@ export const dbmsCourseData = {
             level: 'beginner',
             icon: '📚',
             lessons: [
-                { id: 'intro-1', title: 'DBMS Syllabus Overview for GATE & Exams', videoId: 'kBdlM6hNDAE', duration: '12:30' },
+                { id: 'intro-1', title: 'DBMS Syllabus Overview', videoId: 'kBdlM6hNDAE', duration: '12:30' },
                 { id: 'intro-2', title: 'What is DBMS? Real Life Examples', videoId: '3EJlovevfcA', duration: '15:20' },
                 { id: 'intro-3', title: 'File System vs DBMS: Why Databases Win', videoId: 'ZtVw2iuFI2w', duration: '14:00' },
                 { id: 'intro-4', title: '2-Tier and 3-Tier Architecture', videoId: 'VyvTabQHevw', duration: '16:45' },

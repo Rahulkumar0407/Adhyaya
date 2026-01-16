@@ -30,7 +30,7 @@ const QuizConfigModal = ({ isOpen, onClose, onStart, topicTitle }) => {
             <motion.div
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
-                className="bg-slate-900 rounded-3xl p-8 max-w-lg w-full border border-white/10"
+                className="bg-slate-900 rounded-3xl p-6 md:p-8 max-w-lg w-full border border-white/10 max-h-[90vh] overflow-y-auto no-scrollbar"
             >
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-2xl font-black text-white">Configure Your Quiz</h3>
@@ -134,13 +134,21 @@ const QuizConfigModal = ({ isOpen, onClose, onStart, topicTitle }) => {
                     </p>
                 </div>
 
-                {/* Start Button */}
-                <button
-                    onClick={handleStart}
-                    className="w-full py-4 rounded-xl font-bold text-white transition-all bg-gradient-to-r from-cyan-500 to-violet-500 hover:shadow-lg hover:shadow-cyan-500/30"
-                >
-                    Start Quiz
-                </button>
+                {/* Action Buttons */}
+                <div className="flex gap-4">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 py-4 rounded-xl font-bold text-slate-300 transition-all bg-slate-800 hover:bg-slate-700 hover:text-white"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleStart}
+                        className="flex-1 py-4 rounded-xl font-bold text-white transition-all bg-gradient-to-r from-cyan-500 to-violet-500 hover:shadow-lg hover:shadow-cyan-500/30"
+                    >
+                        Start Quiz
+                    </button>
+                </div>
             </motion.div>
         </motion.div>
     );

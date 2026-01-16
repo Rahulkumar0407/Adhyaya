@@ -17,9 +17,29 @@ export default function Login() {
     const { login, logout } = useAuth(); // Destructure logout ensuring it's available
     const navigate = useNavigate();
 
-    // Check for error in URL (from OAuth redirect)
+    // Check for messages in URL (from OAuth redirect or registration)
     useEffect(() => {
         const queryParams = new URLSearchParams(window.location.search);
+
+        // Check for mentor login redirect
+        const role = queryParams.get('role');
+        if (role === 'mentor') {
+            setIsMentorLogin(true);
+            toast.success('Welcome back, Mentor! Login to access your dashboard. 👨‍🏫', { duration: 3000 });
+            // Clean URL but keep on login page
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return;
+        }
+
+        // Check for successful registration redirect
+        const registered = queryParams.get('registered');
+        if (registered === 'true') {
+            toast.success('Account ban gaya! Ab login karo! 🎉', { duration: 4000 });
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return;
+        }
+
         const errorMsg = queryParams.get('error');
         if (errorMsg) {
             let message = 'Login failed';
@@ -44,6 +64,13 @@ export default function Login() {
 
         try {
             const userData = await login(email, password);
+
+            // Admin users always go to admin dashboard
+            if (userData.role === 'admin') {
+                toast.success('Welcome back, Admin! 🛡️');
+                navigate('/admin');
+                return;
+            }
 
             // Role Validation Logic
             if (isMentorLogin) {
@@ -119,7 +146,7 @@ export default function Login() {
                         <h1 className="text-4xl font-bold mb-4">
                             <span className="text-white">Engineer babu,</span>
                             <br />
-                            <span className="text-orange-500">Sapna sakar kara!</span>
+                            <span className="text-orange-500">Sapna sakar Kare?</span>
                         </h1>
 
                         {/* Subtitle */}
@@ -171,24 +198,20 @@ export default function Login() {
 
                                 {/* Arms */}
                                 <path d="M115 80 L100 95 L120 105" stroke="white" strokeWidth="8" fill="none" strokeLinecap="round" />
-                                <path d="M150 80 L165 95 L175 90" stroke="white" strokeWidth="8" fill="none" strokeLinecap="round" />
+                                <path d="M150 80 L165 95 L140 105" stroke="white" strokeWidth="8" fill="none" strokeLinecap="round" />
 
                                 {/* Legs */}
                                 <path d="M115 115 L100 145 L95 155" stroke="#333" strokeWidth="12" fill="none" strokeLinecap="round" />
-                                <path d="M145 115 L180 130 L220 125" stroke="#333" strokeWidth="12" fill="none" strokeLinecap="round" />
+                                <path d="M145 115 L160 145 L165 155" stroke="#333" strokeWidth="12" fill="none" strokeLinecap="round" />
 
                                 {/* Shoes */}
                                 <ellipse cx="95" cy="160" rx="12" ry="6" fill="white" />
-                                <ellipse cx="225" cy="128" rx="12" ry="6" fill="white" />
+                                <ellipse cx="165" cy="160" rx="12" ry="6" fill="white" />
 
                                 {/* Laptop */}
-                                <rect x="155" y="85" width="35" height="25" rx="2" fill="#333" stroke="white" strokeWidth="1.5" />
-                                <rect x="150" y="110" width="45" height="5" rx="1" fill="#333" stroke="white" strokeWidth="1.5" />
-                                <rect x="160" y="90" width="25" height="15" fill="#facc15" opacity="0.3" /> {/* Screen glow */}
-
-                                {/* Motion lines near feet */}
-                                <path d="M230 140 Q240 138, 245 142" stroke="white" strokeWidth="1.5" fill="none" opacity="0.5" />
-                                <path d="M235 148 Q245 146, 250 150" stroke="white" strokeWidth="1.5" fill="none" opacity="0.5" />
+                                <rect x="113" y="85" width="35" height="25" rx="2" fill="#333" stroke="white" strokeWidth="1.5" />
+                                <rect x="108" y="110" width="45" height="5" rx="1" fill="#333" stroke="white" strokeWidth="1.5" />
+                                <rect x="118" y="90" width="25" height="15" fill="#facc15" opacity="0.3" /> {/* Screen glow */}
                             </svg>
                         </div>
                     </div>

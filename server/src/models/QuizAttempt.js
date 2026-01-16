@@ -54,6 +54,6 @@ const quizAttemptSchema = new mongoose.Schema({
 quizAttemptSchema.index({ user: 1, quiz: 1 });
 quizAttemptSchema.index({ quiz: 1, completedAt: -1 });
 
-const QuizAttempt = mongoose.model('QuizAttempt', quizAttemptSchema);
+const QuizAttempt = mongoose.models.QuizAttempt || mongoose.model('QuizAttempt', quizAttemptSchema);
 
 export default QuizAttempt;

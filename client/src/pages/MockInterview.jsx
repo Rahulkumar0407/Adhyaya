@@ -5,10 +5,11 @@ import api from '../services/api';
 import * as THREE from 'three';
 import {
     Home, Bell, Gift, Mic, Video, Clock, ArrowRight, Play, Users,
-    CheckCircle, Star, Target, Sparkles, MessageSquare, Brain, Zap, Lock, RotateCcw, Wallet, AlertCircle
+    CheckCircle, Star, Target, Sparkles, MessageSquare, Brain, Zap, Lock, RotateCcw, Wallet, AlertCircle, History
 } from 'lucide-react';
 import InterviewSession from '../components/interview/InterviewSession';
 import InterviewResults from '../components/interview/InterviewResults';
+import InterviewSetup from '../components/interview/InterviewSetup';
 
 // Animated Background
 function InterviewBackground() {
@@ -116,10 +117,33 @@ function InterviewBackground() {
         return () => {
             window.removeEventListener('resize', handleResize);
             cancelAnimationFrame(animationId);
-            if (containerRef.current) {
-                containerRef.current.removeChild(renderer.domElement);
+
+            // Comprehensive cleanup
+            if (scene) {
+                scene.traverse((object) => {
+                    if (object.geometry) {
+                        object.geometry.dispose();
+                    }
+                    if (object.material) {
+                        if (Array.isArray(object.material)) {
+                            object.material.forEach(material => material.dispose());
+                        } else {
+                            object.material.dispose();
+                        }
+                    }
+                });
             }
-            renderer.dispose();
+
+            if (renderer) {
+                renderer.dispose();
+                if (containerRef.current && renderer.domElement) {
+                    try {
+                        containerRef.current.removeChild(renderer.domElement);
+                    } catch (e) {
+                        // Ignore if already removed
+                    }
+                }
+            }
         };
     }, []);
 
@@ -138,53 +162,43 @@ const navItems = [
 // Interview types
 const interviewTypes = [
     {
+        id: 'hr',
+        title: 'HR / Behavioral',
+        description: 'Practice soft skills, STAR method, and confidence building',
+        icon: Users,
+        color: 'from-pink-500 to-rose-500',
+        bgGlow: 'bg-pink-500/20',
+        duration: '30 mins',
+        difficulty: 'Easy',
+        questions: '6-8 behavioral questions',
+        available: true,
+        voiceFirst: true,
+    },
+    {
         id: 'dsa',
         title: 'DSA Interview',
-        description: 'Practice Data Structures & Algorithms with AI interviewer',
+        description: 'Complete DSA round - concepts, problem-solving, and live coding like real interviews',
         icon: Brain,
         color: 'from-cyan-500 to-blue-500',
         bgGlow: 'bg-cyan-500/20',
         duration: '45 mins',
-        difficulty: 'Medium',
-        questions: '2-3 coding problems',
+        difficulty: 'Medium-Hard',
+        questions: 'Theory + 2-3 coding problems',
         available: true,
+        voiceFirst: true, // Starts with voice, can switch to code
+        mixedMode: true, // Supports both voice and code
     },
     {
         id: 'system-design',
         title: 'System Design',
-        description: 'Design scalable systems with expert feedback',
+        description: 'Design scalable systems with mixed voice + text diagrams',
         icon: Target,
         color: 'from-purple-500 to-pink-500',
         bgGlow: 'bg-purple-500/20',
-        duration: '60 mins',
+        duration: '45 mins',
         difficulty: 'Hard',
-        questions: '1 design problem',
+        questions: '1-2 design problems',
         available: true,
-    },
-    {
-        id: 'dbms',
-        title: 'DBMS Interview',
-        description: 'SQL, Normalization, ACID & database concepts',
-        icon: MessageSquare,
-        color: 'from-emerald-500 to-teal-500',
-        bgGlow: 'bg-emerald-500/20',
-        duration: '40 mins',
-        difficulty: 'Medium',
-        questions: '5-6 questions + queries',
-        available: true,
-    },
-    {
-        id: 'custom',
-        title: 'Custom Role Interview',
-        description: 'Enter your target role and practice tailored questions',
-        icon: Users,
-        color: 'from-amber-500 to-orange-500',
-        bgGlow: 'bg-amber-500/20',
-        duration: 'Flexible',
-        difficulty: 'Custom',
-        questions: 'Role-specific questions',
-        available: true,
-        isCustom: true,
     },
 ];
 
@@ -228,8 +242,9 @@ export default function MockInterview() {
     const userName = user?.name?.split(' ')[0] || 'Babua';
     const [selectedType, setSelectedType] = useState(null);
     const [customRole, setCustomRole] = useState('');
-    const [interviewState, setInterviewState] = useState('selection'); // selection, session, results, booking
+    const [interviewState, setInterviewState] = useState('selection'); // selection, setup, session, results
     const [interviewResults, setInterviewResults] = useState(null);
+    const [interviewConfig, setInterviewConfig] = useState(null);
     const [showBookingModal, setShowBookingModal] = useState(false);
 
     // Wallet/Points state
@@ -279,7 +294,7 @@ export default function MockInterview() {
 
             if (response.data.success) {
                 setWalletBalance(response.data.data.newBalance);
-                setInterviewState('session');
+                setInterviewState('setup'); // Go to setup screen first
             } else {
                 setWalletError(response.data.message || 'Failed to charge for interview');
             }
@@ -294,6 +309,16 @@ export default function MockInterview() {
     const handleInterviewEnd = () => {
         setInterviewState('selection');
         setSelectedType(null);
+        setInterviewConfig(null);
+    };
+
+    const handleSetupComplete = (config) => {
+        setInterviewConfig(config);
+        setInterviewState('session');
+    };
+
+    const handleSetupBack = () => {
+        setInterviewState('selection');
     };
 
     const handleInterviewResults = (results) => {
@@ -306,12 +331,25 @@ export default function MockInterview() {
         setInterviewState('session');
     };
 
+    // Show interview setup
+    if (interviewState === 'setup') {
+        return (
+            <InterviewSetup
+                selectedType={selectedType}
+                customRole={customRole}
+                onStart={handleSetupComplete}
+                onBack={handleSetupBack}
+            />
+        );
+    }
+
     // Show interview session
     if (interviewState === 'session') {
         return (
             <InterviewSession
                 interviewType={selectedType}
                 customRole={customRole}
+                config={interviewConfig}
                 onEnd={handleInterviewEnd}
                 onResults={handleInterviewResults}
             />
@@ -356,9 +394,17 @@ export default function MockInterview() {
                         <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">Interview</span>
                     </h1>
 
-                    <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">
+                    <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-medium mb-6">
                         Experience the future of interview prep. Dynamic questions, real-time AI feedback, and <span className="text-cyan-400 font-bold">personalized coaching.</span>
                     </p>
+
+                    <Link
+                        to="/interview-history"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all text-sm font-bold"
+                    >
+                        <History className="w-4 h-4" />
+                        View Past Interviews & Weak Points
+                    </Link>
                 </div>
 
                 {/* Features Row */}
@@ -393,12 +439,12 @@ export default function MockInterview() {
                             <div
                                 key={type.id}
                                 onClick={() => type.available && setSelectedType(type.id)}
-                                className={`group relative cursor-pointer ${!type.available && 'opacity-60'}`}
+                                className={`group relative cursor-pointer h-full ${!type.available && 'opacity-60'}`}
                             >
                                 {/* Glow effect */}
                                 <div className={`absolute -inset-1 bg-gradient-to-r ${type.color} rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-20 transition-all duration-700`}></div>
 
-                                <div className={`relative bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] p-8 border-2 transition-all duration-500 shadow-2xl ${selectedType === type.id ? 'border-cyan-500 bg-slate-900/60' : 'border-white/5 hover:border-white/20'}`}>
+                                <div className={`relative h-full bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] p-8 border-2 transition-all duration-500 shadow-2xl flex flex-col ${selectedType === type.id ? 'border-cyan-500 bg-slate-900/60' : 'border-white/5 hover:border-white/20'}`}>
                                     {type.comingSoon && (
                                         <div className="absolute top-6 right-6 flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-amber-500/20">
                                             <Lock className="w-3 h-3" />
@@ -406,8 +452,8 @@ export default function MockInterview() {
                                         </div>
                                     )}
 
-                                    <div className="flex items-start gap-6">
-                                        <div className={`w-20 h-20 bg-gradient-to-br ${type.color} rounded-3xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-all duration-700 border border-white/20`}>
+                                    <div className="flex items-start gap-6 flex-1">
+                                        <div className={`w-20 h-20 flex-shrink-0 bg-gradient-to-br ${type.color} rounded-3xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-all duration-700 border border-white/20`}>
                                             <type.icon className="w-10 h-10 text-white" />
                                         </div>
                                         <div className="flex-1">
@@ -511,8 +557,8 @@ export default function MockInterview() {
                                 Cost: {INTERVIEW_COST} Points
                             </div>
                             <div className={`inline-flex items-center gap-3 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-2xl ${walletBalance >= INTERVIEW_COST
-                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                : 'bg-red-500/10 text-red-400 border-red-500/20'
                                 }`}>
                                 <Sparkles className="w-4 h-4" />
                                 {isLoadingWallet ? 'Loading...' : `Balance: ${walletBalance} Points`}

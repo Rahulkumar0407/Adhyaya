@@ -18,4 +18,4 @@ const quizSchema = new mongoose.Schema({
 quizSchema.index({ course: 1 });
 quizSchema.index({ module: 1 });
 
-export default mongoose.model('Quiz', quizSchema);
+export default mongoose.models.Quiz || mongoose.model('Quiz', quizSchema);

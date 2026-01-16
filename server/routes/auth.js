@@ -2,12 +2,124 @@ import express from 'express';
 import passport from 'passport';
 import User from '../models/User.js';
 import { generateTokens, verifyRefreshToken } from '../middleware/auth.js';
+import admin from '../config/firebase.js';
 
 const router = express.Router();
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
+// @route   POST /api/auth/check-provider
+// @desc    Check if email exists and return provider type
 // @access  Public
+router.post('/check-provider', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.json({ provider: 'none', exists: false });
+        }
+
+        if (user.googleId) {
+            return res.json({ provider: 'google', exists: true });
+        }
+
+        if (user.firebaseUid) {
+            return res.json({ provider: 'email', exists: true });
+        }
+
+        // Legacy email users (if any)
+        return res.json({ provider: 'legacy_email', exists: true });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// @route   POST /api/auth/firebase-login
+// @desc    Login/Register using Firebase Token
+// @access  Public
+router.post('/firebase-login', async (req, res) => {
+    try {
+        const { idToken, name } = req.body;
+
+        if (!idToken) {
+            return res.status(400).json({ success: false, message: 'ID Token is required' });
+        }
+
+        // Verify Firebase Token
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const { uid, email, picture } = decodedToken;
+
+        // Find or Create User
+        let user = await User.findOne({ email });
+
+        if (user) {
+            // If user exists but has different provider info, update it?
+            // If it's a Google user trying to login via password (should be blocked by UI, but safety check)
+            if (user.googleId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This email is linked to a Google account. Please use Google Sign-In.'
+                });
+            }
+
+            // Check if user is banned
+            if (user.isActive === false) {
+                return res.status(403).json({
+                    success: false,
+                    message: user.banReason ? `Account deactivated: ${user.banReason}` : 'Account is deactivated. Please contact support.'
+                });
+            }
+
+            // If legacy user, link firebaseUid?
+            if (!user.firebaseUid) {
+                user.firebaseUid = uid;
+                await user.save();
+            }
+        } else {
+            // Create new user
+            user = await User.create({
+                name: name || email.split('@')[0],
+                email,
+                firebaseUid: uid,
+                avatar: picture || '',
+                isActive: true
+            });
+        }
+
+        // Update streak
+        user.updateStreak();
+
+        // Generate tokens
+        const { accessToken, refreshToken } = generateTokens(user._id);
+
+        // Save refresh token
+        user.refreshToken = refreshToken;
+        await user.save();
+
+        res.json({
+            success: true,
+            data: {
+                user: {
+                    id: user._id,
+                    email: user.email,
+                    name: user.name,
+                    role: user.role,
+                    streakCount: user.streakCount,
+                    longestStreak: user.longestStreak,
+                    babuaCoins: user.babuaCoins,
+                    currentPod: user.currentPod
+                },
+                accessToken,
+                refreshToken
+            }
+        });
+    } catch (error) {
+        console.error('Firebase Auth Error:', error);
+        res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    }
+});
+
+// @route   POST /api/auth/register
+// @desc    Register a new user (Legacy/Fallback)// @access  Public
 router.post('/register', async (req, res) => {
     try {
         const { email, password, name } = req.body;
@@ -80,6 +192,14 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials'
+            });
+        }
+
+        // Check if user is banned
+        if (user.isActive === false) {
+            return res.status(403).json({
+                success: false,
+                message: user.banReason ? `Account deactivated: ${user.banReason}` : 'Account is deactivated. Please contact support.'
             });
         }
 
@@ -220,6 +340,75 @@ router.post('/logout', protect, async (req, res) => {
     }
 });
 
+// @route   POST /api/auth/change-password
+// @desc    Change user password (only if admin granted permission)
+// @access  Private
+import bcrypt from 'bcryptjs';
+
+router.post('/change-password', protect, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'Current password and new password are required'
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password must be at least 6 characters'
+            });
+        }
+
+        // Get user with password and check permission
+        const user = await User.findById(req.user._id).select('+password');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Check if user has permission to change password
+        if (!user.canChangePassword) {
+            return res.status(403).json({
+                success: false,
+                message: 'Password change is not enabled for your account. Please contact admin.'
+            });
+        }
+
+        // Verify current password
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: 'Current password is incorrect'
+            });
+        }
+
+        // Update password (will be hashed by pre-save hook)
+        user.password = newPassword;
+        // Revoke permission after successful change (one-time use)
+        user.canChangePassword = false;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Password changed successfully'
+        });
+    } catch (error) {
+        console.error('Password change error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
 // @route   GET /api/auth/google
 // @desc    Initiate Google OAuth
 // @access  Public
@@ -243,8 +432,13 @@ router.get('/google/callback', (req, res, next) => {
         }
 
         if (!user) {
-            console.error('Google Auth Failed: No user returned');
             return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+        }
+
+        // Check if user is banned
+        if (user.isActive === false) {
+            const banReason = user.banReason ? encodeURIComponent(`Account deactivated: ${user.banReason}`) : 'Account_deactivated';
+            return res.redirect(`${frontendUrl}/login?error=${banReason}`);
         }
 
         try {
@@ -254,7 +448,6 @@ router.get('/google/callback', (req, res, next) => {
             // Generate tokens
             const { accessToken, refreshToken } = generateTokens(user._id);
 
-            // Save refresh token
             user.refreshToken = refreshToken;
             await user.save();
 

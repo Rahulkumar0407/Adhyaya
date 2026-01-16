@@ -25,7 +25,7 @@ const transactionSchema = new mongoose.Schema({
     // Payment gateway info
     paymentGateway: {
         type: String,
-        enum: ['razorpay', 'stripe', 'manual']
+        enum: ['razorpay', 'stripe', 'manual', 'coupon_free']
     },
     gatewayTransactionId: String,
     gatewayOrderId: String,

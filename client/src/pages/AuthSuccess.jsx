@@ -21,6 +21,12 @@ export default function AuthSuccess() {
             // Wait for OAuth callback to complete, then navigate
             handleOAuthCallback(accessToken, refreshToken).then(async (user) => {
                 if (user) {
+                    // Admin users always go to admin dashboard
+                    if (user.role === 'admin') {
+                        navigate('/admin', { replace: true });
+                        return;
+                    }
+
                     const intent = localStorage.getItem('login_intent_role');
                     localStorage.removeItem('login_intent_role'); // Clean up
 

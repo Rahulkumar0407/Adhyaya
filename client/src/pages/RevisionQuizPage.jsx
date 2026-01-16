@@ -228,7 +228,7 @@ export default function RevisionQuizPage() {
                 <QuizBackground />
                 <QuizConfigModal
                     isOpen={showConfigModal}
-                    onClose={() => navigate('/revision')}
+                    onClose={() => navigate('/adaptive-revision')}
                     onStart={handleConfigSubmit}
                     topicTitle={revision?.topicTitle}
                 />
@@ -511,7 +511,7 @@ export default function RevisionQuizPage() {
                             className="flex gap-4"
                         >
                             <Link
-                                to="/revision"
+                                to="/adaptive-revision"
                                 className="flex-1 py-4 bg-slate-800 text-white rounded-xl font-bold text-center hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
                             >
                                 <Home className="w-5 h-5" />

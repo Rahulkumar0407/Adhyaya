@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getUserDossier } from '../services/adminService';
 import * as THREE from 'three';
 import {
     Play, Flame, Lock, BookOpen, Grid3X3,
@@ -141,8 +142,14 @@ function AnimatedBackground() {
 export default function Dashboard() {
     const { user, token } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [streak, setStreak] = useState(0);
     const [randomQuote] = useState(() => quotes[Math.floor(Math.random() * quotes.length)]);
+
+    // Impersonation state for "View As User" feature
+    const viewAsUserId = searchParams.get('viewAs');
+    const [viewAsUser, setViewAsUser] = useState(null);
+    const [isLoadingViewAs, setIsLoadingViewAs] = useState(false);
 
     // Course progress from localStorage
     const [sdProgress, setSDProgress] = useState(0);
@@ -151,12 +158,35 @@ export default function Dashboard() {
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-    // Redirect mentors to mentor dashboard
+    // Fetch viewAs user data if admin is viewing as another user
     useEffect(() => {
-        if (user?.role === 'mentor') {
+        const fetchViewAsUser = async () => {
+            if (!viewAsUserId || user?.role !== 'admin') return;
+
+            setIsLoadingViewAs(true);
+            try {
+                const dossier = await getUserDossier(viewAsUserId);
+                if (dossier?.user) {
+                    setViewAsUser(dossier.user);
+                }
+            } catch (error) {
+                console.error('Failed to fetch viewAs user:', error);
+                // Remove invalid viewAs param
+                navigate('/dashboard', { replace: true });
+            } finally {
+                setIsLoadingViewAs(false);
+            }
+        };
+
+        fetchViewAsUser();
+    }, [viewAsUserId, user?.role, navigate]);
+
+    // Redirect mentors to mentor dashboard (only if not viewing as another user)
+    useEffect(() => {
+        if (user?.role === 'mentor' && !viewAsUserId) {
             navigate('/mentor-dashboard', { replace: true });
         }
-    }, [user, navigate]);
+    }, [user, navigate, viewAsUserId]);
 
     // Load course progress from localStorage
     useEffect(() => {
@@ -209,7 +239,9 @@ export default function Dashboard() {
         return 'Shubh Sandhya';
     };
 
-    const userName = user?.name?.split(' ')[0] || 'Babua';
+    // Use viewAs user's name when impersonating, otherwise use logged-in user's name
+    const displayUser = viewAsUser || user;
+    const userName = displayUser?.name?.split(' ')[0] || 'Babua';
 
     // Course data with dynamic progress
     const courses = [
@@ -271,8 +303,30 @@ export default function Dashboard() {
 
 
 
+            {/* Admin Impersonation Banner */}
+            {viewAsUser && (
+                <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-3 shadow-lg">
+                    <div className="container mx-auto flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl">👁️</span>
+                            <div>
+                                <p className="font-semibold">Viewing as: {viewAsUser.name}</p>
+                                <p className="text-sm text-purple-200">{viewAsUser.email} • {viewAsUser.role}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => navigate('/god-mode/mentor-ops')}
+                            className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg font-medium transition-colors flex items-center gap-2"
+                        >
+                            <X className="w-4 h-4" />
+                            Exit View
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Main Content */}
-            <main className="relative z-10 container mx-auto px-4 py-8">
+            <main className={`relative z-10 container mx-auto px-4 py-8 ${viewAsUser ? 'pt-24' : ''}`}>
                 {/* Hero Section */}
                 <div className="text-center mb-12">
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700/50 border border-lime-500/30 rounded-full text-lime-400 text-sm mb-6">

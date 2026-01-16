@@ -111,6 +111,247 @@ const navItems = [
     { name: 'Connect', href: '/mentors', icon: MessageCircle },
 ];
 
+// LeetCode Integration Section Component
+function LeetCodeSection({ profile, token, API_URL, onProfileUpdate }) {
+    const [syncing, setSyncing] = useState(false);
+    const [linking, setLinking] = useState(false);
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [username, setUsername] = useState('');
+    const [error, setError] = useState('');
+
+    const handleSync = async () => {
+        setSyncing(true);
+        setError('');
+        try {
+            const res = await fetch(`${API_URL}/profile/leetcode/sync`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await res.json();
+            if (data.success) {
+                // Update profile with new stats
+                onProfileUpdate(prev => ({
+                    ...prev,
+                    codingProfiles: {
+                        ...prev.codingProfiles,
+                        leetcode: data.data
+                    }
+                }));
+            } else {
+                setError(data.message || 'Sync failed');
+            }
+        } catch (err) {
+            setError('Network error. Please try again.');
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleLink = async (e) => {
+        e.preventDefault();
+        if (!username.trim()) return;
+
+        setLinking(true);
+        setError('');
+        try {
+            const res = await fetch(`${API_URL}/profile/leetcode/link`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: username.trim() })
+            });
+            const data = await res.json();
+            if (data.success) {
+                onProfileUpdate(prev => ({
+                    ...prev,
+                    codingProfiles: {
+                        ...prev.codingProfiles,
+                        leetcode: data.data
+                    }
+                }));
+                setShowLinkModal(false);
+                setUsername('');
+            } else {
+                setError(data.message || 'Failed to link account');
+            }
+        } catch (err) {
+            setError('Network error. Please try again.');
+        } finally {
+            setLinking(false);
+        }
+    };
+
+    const handleUnlink = async () => {
+        if (!window.confirm('Are you sure you want to unlink your LeetCode account?')) return;
+
+        try {
+            const res = await fetch(`${API_URL}/profile/leetcode/unlink`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                onProfileUpdate(prev => ({
+                    ...prev,
+                    codingProfiles: {
+                        ...prev.codingProfiles,
+                        leetcode: null
+                    }
+                }));
+            }
+        } catch (err) {
+            console.error('Unlink error:', err);
+        }
+    };
+
+    const leetcode = profile?.codingProfiles?.leetcode;
+    const isLinked = leetcode?.verified;
+
+    return (
+        <div className="bg-gradient-to-br from-orange-950/40 to-transparent backdrop-blur rounded-2xl p-6 border border-orange-900/30">
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#FFA116] rounded-xl flex items-center justify-center shadow-lg">
+                        <Code className="w-5 h-5 text-black" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-white">LeetCode Integration</h2>
+                        <p className="text-xs text-orange-100/40">
+                            {isLinked ? `@${leetcode.username}` : 'Sync your LeetCode progress'}
+                        </p>
+                    </div>
+                </div>
+
+                {isLinked && (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleSync}
+                            disabled={syncing}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#FFA116]/20 hover:bg-[#FFA116]/30 border border-[#FFA116]/30 rounded-xl text-[#FFA116] text-sm font-medium transition-all disabled:opacity-50"
+                        >
+                            <RotateCcw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                            {syncing ? 'Syncing...' : 'Sync Now'}
+                        </button>
+                        <button
+                            onClick={() => setShowLinkModal(true)}
+                            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-orange-100/60 text-sm font-medium transition-all"
+                        >
+                            Change Account
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {error && (
+                <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
+                    {error}
+                </div>
+            )}
+
+            {isLinked ? (
+                <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-orange-950/30 rounded-xl p-4 text-center border border-orange-900/30">
+                            <p className="text-3xl font-bold text-white">{leetcode.stats?.totalSolved || 0}</p>
+                            <p className="text-xs text-orange-100/50">Total Solved</p>
+                        </div>
+                        <div className="bg-orange-950/30 rounded-xl p-4 text-center border border-green-500/20">
+                            <p className="text-3xl font-bold text-green-400">{leetcode.stats?.easySolved || 0}</p>
+                            <p className="text-xs text-orange-100/50">Easy</p>
+                        </div>
+                        <div className="bg-orange-950/30 rounded-xl p-4 text-center border border-yellow-500/20">
+                            <p className="text-3xl font-bold text-yellow-400">{leetcode.stats?.mediumSolved || 0}</p>
+                            <p className="text-xs text-orange-100/50">Medium</p>
+                        </div>
+                        <div className="bg-orange-950/30 rounded-xl p-4 text-center border border-red-500/20">
+                            <p className="text-3xl font-bold text-red-400">{leetcode.stats?.hardSolved || 0}</p>
+                            <p className="text-xs text-orange-100/50">Hard</p>
+                        </div>
+                    </div>
+                    {leetcode.lastSynced && (
+                        <p className="mt-4 text-xs text-orange-100/30 text-right">
+                            Last synced: {new Date(leetcode.lastSynced).toLocaleString()}
+                        </p>
+                    )}
+                </>
+            ) : (
+                <div className="text-center py-8">
+                    <div className="text-4xl mb-3">🔗</div>
+                    <p className="text-orange-100/50 mb-4">LeetCode account connect karo apna progress dekhne ke liye!</p>
+                    <button
+                        onClick={() => setShowLinkModal(true)}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#FFA116] text-black font-bold rounded-xl hover:bg-[#FFB340] transition-colors hover:scale-105"
+                    >
+                        Connect LeetCode
+                    </button>
+                </div>
+            )}
+
+            {/* Link/Change Account Modal */}
+            {showLinkModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1008] border border-orange-900/50 rounded-2xl p-6 max-w-md w-full">
+                        <h3 className="text-xl font-bold text-white mb-2">
+                            {isLinked ? 'Change LeetCode Account' : 'Connect LeetCode'}
+                        </h3>
+                        <p className="text-sm text-orange-100/50 mb-6">
+                            Enter your LeetCode username to sync your progress instantly.
+                        </p>
+
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
+                                {error}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleLink}>
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="LeetCode username"
+                                className="w-full px-4 py-3 bg-orange-950/30 border border-orange-900/50 rounded-xl text-white placeholder:text-orange-100/30 focus:outline-none focus:border-[#FFA116]/50 mb-4"
+                                autoFocus
+                            />
+
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowLinkModal(false); setError(''); setUsername(''); }}
+                                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-orange-100/60 font-medium transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={linking || !username.trim()}
+                                    className="flex-1 py-3 bg-[#FFA116] hover:bg-[#FFB340] text-black font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {linking ? 'Linking...' : 'Link Account'}
+                                </button>
+                            </div>
+                        </form>
+
+                        {isLinked && (
+                            <button
+                                onClick={handleUnlink}
+                                className="w-full mt-4 py-2 text-red-400 text-sm hover:text-red-300 transition-colors"
+                            >
+                                Unlink current account
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function Profile() {
     const { user, token, logout } = useAuth();
     const [profile, setProfile] = useState(null);
@@ -511,49 +752,12 @@ export default function Profile() {
                 </div>
 
                 {/* LeetCode Integration */}
-                <div className="bg-gradient-to-br from-orange-950/40 to-transparent backdrop-blur rounded-2xl p-6 border border-orange-900/30">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-[#FFA116] rounded-xl flex items-center justify-center shadow-lg">
-                            <Code className="w-5 h-5 text-black" />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-bold text-white">LeetCode Integration</h2>
-                            <p className="text-xs text-orange-100/40">Sync your LeetCode progress</p>
-                        </div>
-                    </div>
-
-                    {profile?.codingProfiles?.leetcode?.verified ? (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-orange-950/30 rounded-xl p-4 text-center border border-orange-900/30">
-                                <p className="text-3xl font-bold text-white">{profile.codingProfiles.leetcode.stats?.totalSolved || 0}</p>
-                                <p className="text-xs text-orange-100/50">Total Solved</p>
-                            </div>
-                            <div className="bg-orange-950/30 rounded-xl p-4 text-center border border-green-500/20">
-                                <p className="text-3xl font-bold text-green-400">{profile.codingProfiles.leetcode.stats?.easySolved || 0}</p>
-                                <p className="text-xs text-orange-100/50">Easy</p>
-                            </div>
-                            <div className="bg-orange-950/30 rounded-xl p-4 text-center border border-yellow-500/20">
-                                <p className="text-3xl font-bold text-yellow-400">{profile.codingProfiles.leetcode.stats?.mediumSolved || 0}</p>
-                                <p className="text-xs text-orange-100/50">Medium</p>
-                            </div>
-                            <div className="bg-orange-950/30 rounded-xl p-4 text-center border border-red-500/20">
-                                <p className="text-3xl font-bold text-red-400">{profile.codingProfiles.leetcode.stats?.hardSolved || 0}</p>
-                                <p className="text-xs text-orange-100/50">Hard</p>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="text-center py-8">
-                            <div className="text-4xl mb-3">🔗</div>
-                            <p className="text-orange-100/50 mb-4">LeetCode account connect karo apna progress dekhne ke liye!</p>
-                            <Link
-                                to="/settings"
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-[#FFA116] text-black font-bold rounded-xl hover:bg-[#FFB340] transition-colors hover:scale-105"
-                            >
-                                Connect LeetCode
-                            </Link>
-                        </div>
-                    )}
-                </div>
+                <LeetCodeSection
+                    profile={profile}
+                    token={token}
+                    API_URL={API_URL}
+                    onProfileUpdate={setProfile}
+                />
             </main>
         </div>
     );

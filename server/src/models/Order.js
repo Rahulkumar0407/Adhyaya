@@ -6,7 +6,7 @@ const orderSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    
+
     // Order items
     items: [{
         itemType: {
@@ -22,7 +22,7 @@ const orderSchema = new mongoose.Schema({
         price: { type: Number, required: true },
         quantity: { type: Number, default: 1 }
     }],
-    
+
     // Pricing
     subtotal: {
         type: Number,
@@ -45,7 +45,7 @@ const orderSchema = new mongoose.Schema({
         type: String,
         default: 'INR'
     },
-    
+
     // Payment details
     paymentProvider: {
         type: String,
@@ -55,27 +55,27 @@ const orderSchema = new mongoose.Schema({
     providerOrderId: String, // razorpay_order_id or stripe_payment_intent_id
     providerPaymentId: String, // razorpay_payment_id or stripe_charge_id
     providerSignature: String,
-    
+
     // Status
     status: {
         type: String,
         enum: ['pending', 'processing', 'paid', 'failed', 'refunded', 'cancelled'],
         default: 'pending'
     },
-    
+
     // Timestamps for payment
     paidAt: Date,
     refundedAt: Date,
     cancelledAt: Date,
-    
+
     // Payment metadata
     paymentMethod: String, // card, upi, netbanking, wallet
     metadata: mongoose.Schema.Types.Mixed,
-    
+
     // Receipt
     receiptUrl: String,
     invoiceNumber: String,
-    
+
     // Refund details
     refund: {
         amount: Number,
@@ -94,7 +94,7 @@ orderSchema.index({ providerOrderId: 1 });
 orderSchema.index({ invoiceNumber: 1 });
 
 // Generate invoice number
-orderSchema.pre('save', function(next) {
+orderSchema.pre('save', function (next) {
     if (!this.invoiceNumber && this.status === 'paid') {
         const date = new Date();
         const year = date.getFullYear();
@@ -104,6 +104,6 @@ orderSchema.pre('save', function(next) {
     next();
 });
 
-const Order = mongoose.model('Order', orderSchema);
+const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);
 
 export default Order;

@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Wallet, CreditCard, History, TrendingUp, DollarSign, AlertCircle, ArrowUpRight, ArrowDownLeft, Banknote, Building2, CheckCircle2, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Wallet, CreditCard, History, TrendingUp, DollarSign, AlertCircle, ArrowUpRight, ArrowDownLeft, Banknote, Building2, CheckCircle2, Clock, BadgeCheck, Maximize2, X, Tag } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Loader from '../components/common/Loader';
+import { toast } from 'react-hot-toast';
+
+// Helper to check if transaction is a credit (money in)
+const isCreditTransaction = (type) => ['topup', 'bonus', 'refund'].includes(type);
 
 const WalletPage = () => {
     const { user } = useAuth();
@@ -13,6 +17,14 @@ const WalletPage = () => {
     const [transactions, setTransactions] = useState([]);
     const [amount, setAmount] = useState('');
     const [processing, setProcessing] = useState(false);
+    const [showFullQr, setShowFullQr] = useState(false);
+
+    // Coupon & Payment states
+    const [couponCode, setCouponCode] = useState('');
+    const [couponDetails, setCouponDetails] = useState(null);
+    const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+    const [paymentStep, setPaymentStep] = useState('input'); // input, confirm
+    const [paymentOrder, setPaymentOrder] = useState(null);
 
     // Mentor withdrawal states
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -47,17 +59,83 @@ const WalletPage = () => {
         }
     };
 
-    const handleAddFunds = async (e) => {
-        e.preventDefault();
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        if (!amount || amount < 50) {
+            toast.error('Please enter a valid amount first (Min ₹50)');
+            return;
+        }
+
+        try {
+            setIsValidatingCoupon(true);
+            const response = await api.post('/wallet/check-coupon', {
+                code: couponCode,
+                amount: parseInt(amount)
+            });
+
+            if (response.data.success) {
+                setCouponDetails(response.data.data);
+                toast.success(`Coupon applied! You save ₹${response.data.data.discount}`);
+            }
+        } catch (error) {
+            console.error('Coupon error:', error);
+            setCouponDetails(null);
+            toast.error(error.response?.data?.message || 'Invalid coupon');
+        } finally {
+            setIsValidatingCoupon(false);
+        }
+    };
+
+    const handleInitiatePayment = async () => {
         if (!amount || isNaN(amount) || amount < 50) {
-            alert('Please enter a valid amount (min ₹50)');
+            toast.error('Please enter a valid amount (min ₹50)');
             return;
         }
 
         try {
             setProcessing(true);
-            const response = await api.post('/wallet/topup/test', {
-                amount: parseInt(amount)
+            const response = await api.post('/wallet/topup/create-order', {
+                amount: parseInt(amount),
+                couponCode: couponDetails ? couponCode : null
+            });
+
+            if (response.data.success) {
+                // Check if it was an instant success (100% discount)
+                if (response.data.data.instantSuccess) {
+                    setWallet(prev => ({
+                        ...prev,
+                        balance: response.data.data.newBalance
+                    }));
+                    toast.success(response.data.message || `Successfully added ₹${amount}`);
+                    setAmount('');
+                    setCouponCode('');
+                    setCouponDetails(null);
+                    setPaymentStep('input');
+                    setShowFullQr(false);
+                    fetchWalletData();
+                } else {
+                    setPaymentOrder(response.data.data);
+                    setPaymentStep('confirm');
+                    setShowFullQr(true);
+                }
+            }
+        } catch (error) {
+            console.error('Payment initiation failed:', error);
+            toast.error(error.response?.data?.message || 'Failed to initiate payment');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleVerifyPayment = async () => {
+        try {
+            setProcessing(true);
+            const response = await api.post('/wallet/topup/verify', {
+                orderId: paymentOrder.orderId,
+                paymentId: `pay_${Date.now()}`, // Mock payment ID
+                signature: 'mock_signature',
+                amount: parseInt(amount), // Original amount to credit
+                couponCode: couponDetails ? couponCode : null
             });
 
             if (response.data.success) {
@@ -65,13 +143,17 @@ const WalletPage = () => {
                     ...prev,
                     balance: response.data.data.newBalance
                 }));
+                toast.success(`Successfully added ₹${amount}`);
                 setAmount('');
-                alert(`Successfully added ₹${amount}`);
+                setCouponCode('');
+                setCouponDetails(null);
+                setPaymentStep('input');
+                setShowFullQr(false);
                 fetchWalletData();
             }
         } catch (error) {
-            console.error('Payment failed:', error);
-            alert('Payment failed. Please try again.');
+            console.error('Payment verification failed:', error);
+            toast.error('Payment verification failed. Please contact support.');
         } finally {
             setProcessing(false);
         }
@@ -201,38 +283,41 @@ const WalletPage = () => {
                                             <Banknote className="w-12 h-12 mx-auto mb-4 opacity-50" />
                                             <p>No earnings yet. Start resolving doubts to earn!</p>
                                         </div>
-                                    ) : transactions.map((tx) => (
-                                        <div key={tx._id} className="p-5 hover:bg-white/5 transition-colors flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${tx.type === 'credit'
-                                                    ? 'bg-emerald-500/10 text-emerald-400'
-                                                    : 'bg-amber-500/10 text-amber-400'
-                                                    }`}>
-                                                    {tx.type === 'credit' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownLeft className="w-5 h-5" />}
+                                    ) : transactions.map((tx) => {
+                                        const isCredit = isCreditTransaction(tx.type) || tx.amount > 0;
+                                        return (
+                                            <div key={tx._id} className="p-5 hover:bg-white/5 transition-colors flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isCredit
+                                                        ? 'bg-emerald-500/10 text-emerald-400'
+                                                        : 'bg-amber-500/10 text-amber-400'
+                                                        }`}>
+                                                        {isCredit ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownLeft className="w-5 h-5" />}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-white font-bold text-sm">
+                                                            {tx.description || (isCredit ? 'Doubt Resolution Earning' : 'Withdrawal')}
+                                                        </h4>
+                                                        <p className="text-slate-500 text-xs mt-1">
+                                                            {new Date(tx.createdAt).toLocaleDateString()} at {new Date(tx.createdAt).toLocaleTimeString()}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h4 className="text-white font-bold text-sm">
-                                                        {tx.description || (tx.type === 'credit' ? 'Doubt Resolution Earning' : 'Withdrawal')}
-                                                    </h4>
-                                                    <p className="text-slate-500 text-xs mt-1">
-                                                        {new Date(tx.createdAt).toLocaleDateString()} at {new Date(tx.createdAt).toLocaleTimeString()}
+                                                <div className="text-right">
+                                                    <p className={`font-black text-lg ${isCredit ? 'text-emerald-400' : 'text-amber-400'
+                                                        }`}>
+                                                        {isCredit ? '+' : '-'} ₹{Math.abs(tx.amount)}
                                                     </p>
+                                                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${tx.status === 'completed'
+                                                        ? 'bg-emerald-500/10 text-emerald-500'
+                                                        : 'bg-amber-500/10 text-amber-500'
+                                                        }`}>
+                                                        {tx.status}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className={`font-black text-lg ${tx.type === 'credit' ? 'text-emerald-400' : 'text-amber-400'
-                                                    }`}>
-                                                    {tx.type === 'credit' ? '+' : '-'} ₹{tx.amount}
-                                                </p>
-                                                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${tx.status === 'completed'
-                                                    ? 'bg-emerald-500/10 text-emerald-500'
-                                                    : 'bg-amber-500/10 text-amber-500'
-                                                    }`}>
-                                                    {tx.status}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        )
+                                    })}
                                 </div>
                             </div>
 
@@ -387,54 +472,120 @@ const WalletPage = () => {
                             <div className="absolute top-[-50%] right-[-20%] w-[300px] h-[300px] bg-emerald-500/20 rounded-full blur-[80px]" />
                         </motion.div>
 
-                        {/* Add Funds Form */}
+                        {/* Add Funds Section */}
                         <div className="bg-slate-900/60 backdrop-blur-xl rounded-3xl p-6 border border-white/10">
                             <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                                 <TrendingUp className="w-5 h-5 text-cyan-400" />
                                 Add Funds
                             </h3>
-                            <form onSubmit={handleAddFunds}>
-                                <div className="mb-4">
-                                    <label className="block text-slate-400 text-sm font-bold mb-2">Amount (₹)</label>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-lg">₹</span>
-                                        <input
-                                            type="number"
-                                            value={amount}
-                                            onChange={(e) => setAmount(e.target.value)}
-                                            placeholder="500"
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white font-bold text-lg focus:outline-none focus:border-cyan-500 placeholder-slate-600 transition-colors"
-                                            min="50"
-                                        />
+
+                            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                                {paymentStep === 'input' ? (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-slate-400 text-sm font-bold mb-2">Enter Amount</label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                                                <input
+                                                    type="number"
+                                                    value={amount}
+                                                    onChange={(e) => {
+                                                        setAmount(e.target.value);
+                                                        setCouponDetails(null); // Reset coupon on amount change
+                                                    }}
+                                                    placeholder="500"
+                                                    min="50"
+                                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-600"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-1">Min deposit: ₹50</p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-slate-400 text-sm font-bold mb-2">Coupon Code</label>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={couponCode}
+                                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                                        placeholder="PROMO10"
+                                                        className="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white font-mono uppercase focus:outline-none focus:border-emerald-500 placeholder-slate-600"
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={handleApplyCoupon}
+                                                    disabled={isValidatingCoupon || !couponCode}
+                                                    className="px-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
+                                                >
+                                                    {isValidatingCoupon ? '...' : 'Apply'}
+                                                </button>
+                                            </div>
+                                            {couponDetails && (
+                                                <div className="mt-2 text-sm flex items-center justify-between text-emerald-400 bg-emerald-500/10 p-2 rounded-lg">
+                                                    <span>🎉 Code Applied!</span>
+                                                    <span className="font-bold">-₹{couponDetails.discount}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="pt-4 border-t border-white/5">
+                                            <div className="flex justify-between items-center mb-4 text-sm">
+                                                <span className="text-slate-400">Payable Amount</span>
+                                                <span className="text-xl font-black text-white">
+                                                    ₹{couponDetails ? couponDetails.finalAmount : (amount || 0)}
+                                                </span>
+                                            </div>
+                                            <button
+                                                onClick={handleInitiatePayment}
+                                                disabled={processing || !amount || amount < 50}
+                                                className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                {processing ? (
+                                                    <span className="animate-spin group-hover:block">⚪</span>
+                                                ) : (
+                                                    <>
+                                                        <TrendingUp className="w-5 h-5" />
+                                                        Add Money
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                                        <AlertCircle className="w-3 h-3" />
-                                        Minimum deposit amount is ₹50
-                                    </p>
-                                </div>
+                                ) : (
+                                    <div className="text-center">
+                                        <div className="bg-white p-2 rounded-xl inline-block mb-4 cursor-pointer" onClick={() => setShowFullQr(true)}>
+                                            <img
+                                                src="/assets/payment-qr.png"
+                                                alt="Payment QR Code"
+                                                className="w-40 h-40 object-contain"
+                                            />
+                                        </div>
+                                        <h4 className="text-lg font-bold text-white mb-1">Scan to Pay</h4>
+                                        <div className="text-2xl font-black text-emerald-400 mb-4">
+                                            ₹{paymentOrder?.amount / 100}
+                                        </div>
+                                        <p className="text-slate-400 text-xs mb-4">
+                                            Scan using any UPI app.
+                                        </p>
 
-                                <div className="grid grid-cols-3 gap-2 mb-6">
-                                    {[100, 500, 1000].map(val => (
                                         <button
-                                            key={val}
-                                            type="button"
-                                            onClick={() => setAmount(val.toString())}
-                                            className="py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold rounded-lg border border-slate-700 hover:border-cyan-500/50 transition-all text-sm"
+                                            onClick={handleVerifyPayment}
+                                            disabled={processing}
+                                            className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
                                         >
-                                            +₹{val}
+                                            {processing ? 'Verifying...' : 'I Have Paid'}
                                         </button>
-                                    ))}
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={processing || !amount}
-                                    className="w-full py-4 bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-500 hover:to-violet-500 text-white font-black rounded-xl shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                                >
-                                    {processing ? 'Processing...' : 'Proceed to Pay'}
-                                    {!processing && <ArrowUpRight className="w-5 h-5" />}
-                                </button>
-                            </form>
+                                        <button
+                                            onClick={() => setPaymentStep('input')}
+                                            className="mt-3 text-slate-500 hover:text-white text-xs underline"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -456,38 +607,41 @@ const WalletPage = () => {
                                     <div className="p-12 text-center text-slate-500">
                                         No recent transactions found.
                                     </div>
-                                ) : transactions.map((tx) => (
-                                    <div key={tx._id} className="p-5 hover:bg-white/5 transition-colors flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${tx.type === 'credit'
-                                                ? 'bg-emerald-500/10 text-emerald-400'
-                                                : 'bg-rose-500/10 text-rose-400'
-                                                }`}>
-                                                {tx.type === 'credit' ? <ArrowUpRight className="w-5 h-5" /> : <DollarSign className="w-5 h-5" />}
+                                ) : transactions.map((tx) => {
+                                    const isCredit = isCreditTransaction(tx.type) || tx.amount > 0;
+                                    return (
+                                        <div key={tx._id} className="p-5 hover:bg-white/5 transition-colors flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isCredit
+                                                    ? 'bg-emerald-500/10 text-emerald-400'
+                                                    : 'bg-rose-500/10 text-rose-400'
+                                                    }`}>
+                                                    {isCredit ? <ArrowUpRight className="w-5 h-5" /> : <DollarSign className="w-5 h-5" />}
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-white font-bold text-sm">
+                                                        {tx.description || (isCredit ? 'Wallet Top-up' : 'Service Payment')}
+                                                    </h4>
+                                                    <p className="text-slate-500 text-xs mt-1">
+                                                        {new Date(tx.createdAt).toLocaleDateString()} at {new Date(tx.createdAt).toLocaleTimeString()}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h4 className="text-white font-bold text-sm">
-                                                    {tx.description || (tx.type === 'credit' ? 'Wallet Top-up' : 'Service Payment')}
-                                                </h4>
-                                                <p className="text-slate-500 text-xs mt-1">
-                                                    {new Date(tx.createdAt).toLocaleDateString()} at {new Date(tx.createdAt).toLocaleTimeString()}
+                                            <div className="text-right">
+                                                <p className={`font-black text-lg ${isCredit ? 'text-emerald-400' : 'text-rose-400'
+                                                    }`}>
+                                                    {isCredit ? '+' : '-'} ₹{Math.abs(tx.amount)}
                                                 </p>
+                                                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${tx.status === 'completed'
+                                                    ? 'bg-emerald-500/10 text-emerald-500'
+                                                    : 'bg-amber-500/10 text-amber-500'
+                                                    }`}>
+                                                    {tx.status}
+                                                </span>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className={`font-black text-lg ${tx.type === 'credit' ? 'text-emerald-400' : 'text-rose-400'
-                                                }`}>
-                                                {tx.type === 'credit' ? '+' : '-'} ₹{tx.amount}
-                                            </p>
-                                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${tx.status === 'completed'
-                                                ? 'bg-emerald-500/10 text-emerald-500'
-                                                : 'bg-amber-500/10 text-amber-500'
-                                                }`}>
-                                                {tx.status}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         </div>
 
@@ -505,6 +659,50 @@ const WalletPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Full Screen QR Modal */}
+            <AnimatePresence>
+                {showFullQr && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                        onClick={() => setShowFullQr(false)}>
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white p-4 rounded-3xl max-w-lg w-full relative"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <button
+                                onClick={() => setShowFullQr(false)}
+                                className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-600 transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                            <h3 className="text-xl font-bold text-center mb-4 text-gray-900">Scan to Pay</h3>
+                            <div className="bg-white p-4 rounded-xl shadow-inner border border-gray-100 flex flex-col items-center justify-center">
+                                <img
+                                    src="/assets/payment-qr.png"
+                                    alt="Payment QR Code"
+                                    className="w-full h-auto max-h-[50vh] object-contain"
+                                />
+                                {paymentOrder && (
+                                    <div className="mt-4 text-center">
+                                        <p className="text-gray-500 text-sm">Payable Amount</p>
+                                        <p className="text-3xl font-bold text-emerald-600">₹{paymentOrder.amount / 100}</p>
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-center text-gray-500 mt-4 text-sm">Scan with any UPI app and complete payment</p>
+                            <button
+                                onClick={handleVerifyPayment}
+                                className="w-full mt-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors"
+                            >
+                                I Have Paid
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
