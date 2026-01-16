@@ -17,16 +17,12 @@ export default defineConfig({
         }
     },
     build: {
-        // Enable minification
-        minify: 'terser',
-        terserOptions: {
-            compress: {
-                drop_console: true, // Remove console.log in production
-                drop_debugger: true
-            }
-        },
+        // Use esbuild for minification (built-in, no extra install needed)
+        minify: 'esbuild',
         // Code splitting for better caching
         rollupOptions: {
+            // Externalize mediapipe to avoid build issues
+            external: ['@mediapipe/face_mesh'],
             output: {
                 manualChunks: {
                     // Vendor chunks - cached separately
