@@ -21,8 +21,6 @@ export default defineConfig({
         minify: 'esbuild',
         // Code splitting for better caching
         rollupOptions: {
-            // Externalize mediapipe to avoid build issues
-            external: ['@mediapipe/face_mesh'],
             output: {
                 manualChunks: {
                     // Vendor chunks - cached separately
