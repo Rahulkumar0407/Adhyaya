@@ -282,11 +282,11 @@ export default function Login() {
                                     {/* Email Field */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                                            {isMentorLogin ? 'Mentor Email' : 'Email ID ya Username'}
+                                            {isMentorLogin ? 'Mentor Email' : 'Email ID'}
                                         </label>
                                         <div className="relative">
                                             <input
-                                                type="email"
+                                                type="text"
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 className="w-full px-4 py-2.5 bg-[#1a1a1a] border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"

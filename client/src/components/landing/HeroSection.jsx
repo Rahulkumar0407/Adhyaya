@@ -179,6 +179,12 @@ export default function HeroSection() {
                             <span className="text-lg group-hover:translate-x-1 transition-transform">🚀</span>
                         </Link>
                         <button
+                            onClick={() => {
+                                document.getElementById('roadmap-section')?.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start'
+                                });
+                            }}
                             className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#2a2a2a] border border-gray-600 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:border-orange-500"
                         >
                             Raasta Dekhein

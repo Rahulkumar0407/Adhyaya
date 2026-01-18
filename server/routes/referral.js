@@ -35,7 +35,7 @@ router.get('/', protect, async (req, res) => {
                 referralCode: user.referralCode,
                 referralCount: user.referralCount || 0,
                 referralClaimed: user.referralClaimed || false,
-                totalEarned: (user.referralCount || 0) * 200 // 200 pts per referral
+                totalEarned: (user.referralCount || 0) * 100 // 100 pts per referral
             }
         });
     } catch (error) {
@@ -75,17 +75,17 @@ router.post('/claim', protect, async (req, res) => {
         // Award points to current user (Claimer)
         user.referralClaimed = true;
         user.referredBy = referrer._id;
-        user.babuaCoins = (user.babuaCoins || 0) + 200;
+        user.babuaCoins = (user.babuaCoins || 0) + 100;
         await user.save();
 
         // Award points to referrer
         referrer.referralCount = (referrer.referralCount || 0) + 1;
-        referrer.babuaCoins = (referrer.babuaCoins || 0) + 200;
+        referrer.babuaCoins = (referrer.babuaCoins || 0) + 100;
         await referrer.save();
 
         res.json({
             success: true,
-            message: 'Referral claimed successfully! You earned 200 Babua Points.',
+            message: 'Referral claimed successfully! You earned 100 Babua Points.',
             data: {
                 newBalance: user.babuaCoins
             }

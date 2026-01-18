@@ -249,22 +249,42 @@ export default function InterviewResults({
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {suggestedResources.map((resource, idx) => (
-                                <Link
-                                    key={idx}
-                                    to={resource.path}
-                                    className="flex items-start gap-4 p-5 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-purple-500/30 transition-all group"
-                                >
-                                    <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                                        <BookOpen className="w-5 h-5 text-purple-400" />
+                                resource.hasPath ? (
+                                    // Resource available on platform - show as clickable link
+                                    <Link
+                                        key={idx}
+                                        to={resource.path}
+                                        className="flex items-start gap-4 p-5 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-purple-500/30 transition-all group"
+                                    >
+                                        <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            <BookOpen className="w-5 h-5 text-purple-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-bold group-hover:text-purple-400 transition-colors">{resource.title}</p>
+                                            <p className="text-slate-400 text-sm mt-1">{resource.description}</p>
+                                            <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-purple-500/20 text-purple-400 rounded-lg">
+                                                {resource.type} • View Course →
+                                            </span>
+                                        </div>
+                                    </Link>
+                                ) : (
+                                    // External topic - show without link
+                                    <div
+                                        key={idx}
+                                        className="flex items-start gap-4 p-5 bg-white/5 border border-white/10 rounded-2xl opacity-80"
+                                    >
+                                        <div className="w-10 h-10 bg-slate-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            <Target className="w-5 h-5 text-slate-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-bold">{resource.title}</p>
+                                            <p className="text-slate-400 text-sm mt-1">{resource.description}</p>
+                                            <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-slate-500/20 text-slate-400 rounded-lg">
+                                                External Resource
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-white font-bold group-hover:text-purple-400 transition-colors">{resource.title}</p>
-                                        <p className="text-slate-400 text-sm mt-1">{resource.description}</p>
-                                        <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-purple-500/20 text-purple-400 rounded-lg">
-                                            {resource.type}
-                                        </span>
-                                    </div>
-                                </Link>
+                                )
                             ))}
                         </div>
                     </div>

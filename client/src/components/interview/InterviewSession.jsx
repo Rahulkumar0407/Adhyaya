@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, MicOff, Send, Clock, X, Volume2, VolumeX, MessageSquare, Sparkles, Brain, Target, Zap, AlertCircle, User } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import RealtimeAvatar from './RealtimeAvatar';
 import CodeEditor from './CodeEditor';
 import speechService from '../../services/speechService';
@@ -518,13 +519,26 @@ export default function InterviewSession({
                 },
                 (error) => {
                     console.error('Speech recognition error:', error);
-                    setIsListening(false);
-                    if (error === 'network' || error === 'no-speech' || error === 'not-allowed') {
-                        // Don't show full screen error, just stop listening and notify
-                        if (error === 'network') {
-                            // Optional: notify user via UI if possible, or just fallback silently to text
-                            console.log('Network error detected, stopping listening');
-                        }
+                    // Don't stop listening for no-speech or network hiccups, let auto-restart handle it
+                    if (error !== 'no-speech' && error !== 'network') {
+                        setIsListening(false);
+                    }
+                    if (error === 'network-fatal') {
+                        setIsListening(false);
+                        toast.error('Voice connection lost. Please type your answer or try again later.', {
+                            id: 'voice-lost',
+                            duration: 6000
+                        });
+                    } else if (error === 'network') {
+                        // Notify user via UI
+                        console.log('Network error detected, keeping listening state but stopping recognition momentarily');
+                        toast.error('Connection hiccup. We missed that - please say it again.', {
+                            id: 'network-speech-error', // Prevent duplicate toasts
+                            duration: 4000
+                        });
+                    }
+                    if (error === 'no-speech') {
+                        // Optional: could toast here too if it happens often, but might be annoying
                     }
                 }
             );
@@ -723,20 +737,28 @@ export default function InterviewSession({
             questionsTotal: latestConversation.filter(m => m.role === 'ai').length,
             timeTaken: totalTimeUsed,
             strengths: hasAttemptedQuestions
-                ? (strengths.length > 0 ? strengths : ['Willing to try', 'Showed up for practice'])
-                : ['Showed up for practice'],
+                ? (strengths.length > 0 ? strengths : ['Attempted the interview', 'Showed initiative and willingness to learn'])
+                : ['Took the first step by starting the interview'],
             weakPoints: hasAttemptedQuestions
-                ? (improvements.length > 0 ? improvements : ['Could provide more detailed answers'])
-                : ['Interview ended too quickly to evaluate'],
+                ? (improvements.length > 0 ? improvements : ['Continue practicing for more consistent results'])
+                : ['Ending early - try to answer at least a few questions for feedback'],
             suggestions: hasAttemptedQuestions
-                ? ['Practice more mock interviews', 'Take time to fully answer questions']
-                : ['Try completing at least a few questions for better feedback'],
+                ? [
+                    'Keep practicing with more mock interviews',
+                    'Review the topics where you felt unsure',
+                    'Try explaining concepts out loud to build communication skills',
+                    'Time yourself while practicing problems'
+                ]
+                : ['Complete at least 2-3 questions next time for detailed feedback'],
+            weakTopics: improvements, // Pass improvements as weakTopics for resource mapping
             conversation: latestConversation,
             completedEarly: !hasAttemptedQuestions
         };
 
         const msg = hasAttemptedQuestions
-            ? `Great job! You've completed the interview. Your overall performance score is ${results.overallScore}.`
+            ? questionsAttempted === 1
+                ? `Good start! You answered 1 question. Your score is ${results.overallScore}. Try answering more questions in future interviews for more detailed feedback!`
+                : `Great job! You've completed the interview. Your overall performance score is ${results.overallScore}.`
             : `Interview ended. Try answering some questions next time for a proper evaluation!`;
         addAIMessage(msg);
 
@@ -1063,8 +1085,8 @@ export default function InterviewSession({
                         <div ref={chatEndRef} />
                     </div>
 
-                    {/* Input Area */}
-                    {interviewType !== 'dsa' && currentStep !== 'complete' && (
+                    {/* Input Area - Show for ALL interview types so users can always type if mic fails */}
+                    {currentStep !== 'complete' && (
                         <div className="p-6 bg-white/5 border-t border-white/5">
                             <div className="flex items-center gap-4">
                                 <button

@@ -212,36 +212,64 @@ export const ADHYAYA_RESOURCES = {
 };
 
 // Map weak topics from AI evaluation to Adhyaya resources
+// Returns all topics - those with platform resources get path, others get tips
 export function mapWeakAreasToResources(weakTopics = []) {
     const resources = [];
-    const matched = new Set();
+    const processed = new Set();
 
     for (const topic of weakTopics) {
+        if (!topic || processed.has(topic.toLowerCase())) continue;
+        processed.add(topic.toLowerCase());
+
         const normalizedTopic = topic.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        let found = false;
 
         // Direct match
-        if (ADHYAYA_RESOURCES[normalizedTopic] && !matched.has(normalizedTopic)) {
-            resources.push(ADHYAYA_RESOURCES[normalizedTopic]);
-            matched.add(normalizedTopic);
+        if (ADHYAYA_RESOURCES[normalizedTopic]) {
+            resources.push({
+                ...ADHYAYA_RESOURCES[normalizedTopic],
+                originalTopic: topic,
+                hasPath: true
+            });
+            found = true;
             continue;
         }
 
         // Partial match
         for (const [key, resource] of Object.entries(ADHYAYA_RESOURCES)) {
-            if (!matched.has(key) && (
+            if (
                 normalizedTopic.includes(key) ||
                 key.includes(normalizedTopic) ||
-                resource.title.toLowerCase().includes(topic.toLowerCase())
-            )) {
-                resources.push(resource);
-                matched.add(key);
+                resource.title.toLowerCase().includes(topic.toLowerCase()) ||
+                topic.toLowerCase().includes(key.replace(/_/g, ' '))
+            ) {
+                resources.push({
+                    ...resource,
+                    originalTopic: topic,
+                    hasPath: true
+                });
+                found = true;
                 break;
             }
         }
+
+        // Topic not on platform - still show but mark as external suggestion
+        if (!found) {
+            resources.push({
+                title: topic,
+                type: 'external',
+                path: null,
+                hasPath: false,
+                description: `Practice ${topic} through external resources like LeetCode, HackerRank, or YouTube tutorials`,
+                originalTopic: topic
+            });
+        }
     }
 
-    // Limit to top 5 resources
-    return resources.slice(0, 5);
+    // Limit to top 6 resources (prioritize platform resources first)
+    return resources
+        .sort((a, b) => (b.hasPath ? 1 : 0) - (a.hasPath ? 1 : 0))
+        .slice(0, 6);
 }
 
 // Get random fallback question for interview type

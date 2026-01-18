@@ -16,7 +16,8 @@ import {
     ChevronRight,
     LogOut,
     Search,
-    Shield
+    Shield,
+    CreditCard
 } from 'lucide-react';
 
 const menuItems = [
@@ -67,6 +68,12 @@ const menuItems = [
         label: 'Coupon Generator',
         icon: Gift,
         path: '/admin/coupons',
+    },
+    {
+        id: 'payments',
+        label: 'Payments',
+        icon: CreditCard,
+        path: '/admin/payments',
     },
     {
         id: 'settings',

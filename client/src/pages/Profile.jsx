@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import * as THREE from 'three';
 import { useRef } from 'react';
 import UserProfileDropdown from '../components/common/UserProfileDropdown';
+import { getAvatarUrl, getInitialsDataUrl } from '../utils/imageUtils';
 import {
     Edit3, Linkedin, Github, Globe, MapPin,
     GraduationCap, Flame, ClipboardCheck,
@@ -549,7 +550,12 @@ export default function Profile() {
                                     <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-500 via-amber-400 to-orange-600 p-1.5 shadow-2xl shadow-orange-500/40 relative z-10">
                                         <div className="w-full h-full rounded-full bg-[#0f0a06] flex items-center justify-center overflow-hidden border-2 border-orange-950/50">
                                             {profile?.avatar ? (
-                                                <img src={profile.avatar} alt={profile?.name} className="w-full h-full object-cover" />
+                                                <img
+                                                    src={getAvatarUrl(profile.avatar)}
+                                                    alt={profile?.name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = getInitialsDataUrl(profile?.name || profile?.email); }}
+                                                />
                                             ) : (
                                                 <span className="text-5xl font-bold bg-gradient-to-br from-orange-400 to-amber-500 bg-clip-text text-transparent">
                                                     {profile?.name?.charAt(0) || 'B'}

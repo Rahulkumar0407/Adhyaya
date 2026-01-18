@@ -404,20 +404,20 @@ const UserDossier = ({ user: initialUser, wallet, activities, revisions, onRefre
                             Credit Points
                         </NeonButton>
                         <NeonButton
-                            variant={user.adaptiveRevisionSubscription ? 'danger' : 'primary'}
+                            variant={user.adaptiveRevisionSubscription?.plan === 'premium' ? 'danger' : 'primary'}
                             size="sm"
-                            icon={user.adaptiveRevisionSubscription ? Lock : Key}
-                            onClick={() => user.adaptiveRevisionSubscription ? handleLockFeature('adaptiveRevision') : handleUnlockFeature('adaptiveRevision')}
+                            icon={user.adaptiveRevisionSubscription?.plan === 'premium' ? Lock : Key}
+                            onClick={() => user.adaptiveRevisionSubscription?.plan === 'premium' ? handleLockFeature('adaptiveRevision') : handleUnlockFeature('adaptiveRevision')}
                         >
-                            {user.adaptiveRevisionSubscription ? 'Lock Adaptive' : 'Unlock Adaptive'}
+                            {user.adaptiveRevisionSubscription?.plan === 'premium' ? 'Lock Adaptive' : 'Unlock Adaptive'}
                         </NeonButton>
                         <NeonButton
-                            variant={user.mentorCircleSubscription ? 'danger' : 'primary'}
+                            variant={user.mentorCircleSubscription?.plan === 'premium' ? 'danger' : 'primary'}
                             size="sm"
-                            icon={user.mentorCircleSubscription ? Lock : Key}
-                            onClick={() => user.mentorCircleSubscription ? handleLockFeature('mentorCircle') : handleUnlockFeature('mentorCircle')}
+                            icon={user.mentorCircleSubscription?.plan === 'premium' ? Lock : Key}
+                            onClick={() => user.mentorCircleSubscription?.plan === 'premium' ? handleLockFeature('mentorCircle') : handleUnlockFeature('mentorCircle')}
                         >
-                            {user.mentorCircleSubscription ? 'Lock Mentor' : 'Unlock Mentor'}
+                            {user.mentorCircleSubscription?.plan === 'premium' ? 'Lock Mentor' : 'Unlock Mentor'}
                         </NeonButton>
                     </div>
                 </div>

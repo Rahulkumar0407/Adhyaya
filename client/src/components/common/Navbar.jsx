@@ -17,7 +17,7 @@ export default function Navbar() {
         : "text-gray-400 hover:text-white hover:bg-gray-800/50";
 
     return (
-        <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-gray-800/50">
+        <header className="sticky top-0 z-[80] bg-[#0a0a0a]/90 backdrop-blur-md border-b border-gray-800/50">
             <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                 {/* Logo */}
                 <PrefetchLink to={user?.role === 'mentor' ? "/mentor-dashboard" : "/dashboard"} className="flex items-center gap-2 group">

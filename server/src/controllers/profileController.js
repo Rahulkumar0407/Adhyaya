@@ -1,6 +1,7 @@
 import User from '../../models/User.js';
 import Activity from '../../models/Activity.js';
 import leetcodeService from '../services/leetcodeService.js';
+import CacheService from '../services/cacheService.js';
 
 /**
  * Get current user's full profile
@@ -48,6 +49,40 @@ export const updateProfile = async (req, res) => {
             }
         }
 
+        // Fetch current user to check for new social links
+        const currentUser = await User.findById(req.user.id);
+        let coinsEarned = 0;
+        const newLinks = [];
+
+        // Check if social links are being added for the first time (10 points each)
+        if (updates.socialLinks) {
+            const currentLinks = currentUser.socialLinks || {};
+            const newSocialLinks = updates.socialLinks;
+
+            // Check LinkedIn
+            if (newSocialLinks.linkedin && newSocialLinks.linkedin.trim() && !currentLinks.linkedin) {
+                coinsEarned += 10;
+                newLinks.push('LinkedIn');
+            }
+
+            // Check GitHub
+            if (newSocialLinks.github && newSocialLinks.github.trim() && !currentLinks.github) {
+                coinsEarned += 10;
+                newLinks.push('GitHub');
+            }
+
+            // Check Portfolio
+            if (newSocialLinks.portfolio && newSocialLinks.portfolio.trim() && !currentLinks.portfolio) {
+                coinsEarned += 10;
+                newLinks.push('Portfolio');
+            }
+        }
+
+        // Add coins to the update if earned
+        if (coinsEarned > 0) {
+            updates.babuaCoins = (currentUser.babuaCoins || 0) + coinsEarned;
+        }
+
         const user = await User.findByIdAndUpdate(
             req.user.id,
             { $set: updates },
@@ -57,13 +92,72 @@ export const updateProfile = async (req, res) => {
         res.json({
             success: true,
             data: user,
-            message: 'Profile updated successfully'
+            coinsEarned,
+            newLinks,
+            message: coinsEarned > 0
+                ? `Profile updated! +${coinsEarned} Babua Coins for connecting ${newLinks.join(', ')}! 🎉`
+                : 'Profile updated successfully'
         });
     } catch (error) {
         console.error('Update profile error:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to update profile'
+        });
+    }
+};
+
+/**
+ * Update user avatar
+ */
+export const updateAvatar = async (req, res) => {
+    try {
+        let avatarUrl = req.body.avatar;
+
+        if (req.file) {
+            avatarUrl = req.file.path;
+            // Normalize path for local uploads (Windows fix)
+            if (avatarUrl.includes('uploads')) {
+                // Ensure forward slashes and leading slash for static serving
+                avatarUrl = '/' + avatarUrl.replace(/\\/g, '/');
+                // If it already had a leading /, remove the double
+                if (avatarUrl.startsWith('//')) avatarUrl = avatarUrl.substring(1);
+
+                // If the path contains the full absolute path, we need to extract just the relative part
+                // simpler approach: just check if it doesn't start with http (Cloudinary)
+                if (!avatarUrl.startsWith('http')) {
+                    // Clean up if needed, but the above replace is usually enough for relative paths from multer
+                    // Multer disk storage usually returns "uploads\filename.png"
+                }
+            }
+        }
+
+        if (!avatarUrl) {
+            return res.status(400).json({
+                success: false,
+                message: 'Avatar image is required'
+            });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            { $set: { avatar: avatarUrl } },
+            { new: true, runValidators: true }
+        ).select('-password -refreshToken -sessions');
+
+        // Invalidate leaderboard cache so the new avatar shows up immediately
+        await CacheService.deleteByPattern('leaderboard:*');
+
+        res.json({
+            success: true,
+            data: user,
+            message: 'Avatar updated successfully'
+        });
+    } catch (error) {
+        console.error('Update avatar error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update avatar'
         });
     }
 };
@@ -342,6 +436,7 @@ export const unlinkLeetCode = async (req, res) => {
 export default {
     getProfile,
     updateProfile,
+    updateAvatar,
     recordActivity,
     getActivityCalendar,
     getStreak,

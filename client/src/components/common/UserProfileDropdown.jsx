@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { User, Settings, LogOut, LayoutDashboard, ChevronDown, Wallet } from 'lucide-react';
+import { getAvatarUrl, getInitialsDataUrl } from '../../utils/imageUtils';
 
 export default function UserProfileDropdown() {
     const { user, logout } = useAuth();
@@ -41,8 +42,17 @@ export default function UserProfileDropdown() {
                     <div className="text-xs text-gray-500 group-hover:text-gray-400 transition-colors uppercase">{user?.role || 'User'}</div>
                 </div>
                 <div className="relative">
-                    <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/40 transition-all group-hover:scale-105 border border-white/10">
-                        {userInitial}
+                    <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/40 transition-all group-hover:scale-105 border border-white/10 overflow-hidden">
+                        {user?.avatar ? (
+                            <img
+                                src={getAvatarUrl(user.avatar)}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = getInitialsDataUrl(user?.name || user?.email); }}
+                            />
+                        ) : (
+                            userInitial
+                        )}
                     </div>
                     <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gray-900 rounded-full flex items-center justify-center">
                         <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
@@ -52,7 +62,7 @@ export default function UserProfileDropdown() {
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute right-0 mt-3 w-56 bg-[#1a1a1a] border border-gray-800 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute right-0 mt-3 w-56 bg-[#1a1a1a] border border-gray-800 rounded-xl shadow-2xl py-2 z-[70] animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="px-4 py-3 border-b border-gray-800 mb-2">
                         <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
                         <p className="text-xs text-gray-500 truncate">{user?.email || 'email@example.com'}</p>

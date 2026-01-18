@@ -229,9 +229,9 @@ export default function DSAItemDetail() {
     useEffect(() => {
         if (item) {
             const unlockedItems = JSON.parse(localStorage.getItem('dsa-unlocked-resources') || '[]');
-            if (unlockedItems.includes(item.id)) {
-                setResourcesUnlocked(true);
-            }
+            setResourcesUnlocked(unlockedItems.includes(item.id));
+        } else {
+            setResourcesUnlocked(false);
         }
     }, [item]);
 
@@ -281,6 +281,15 @@ export default function DSAItemDetail() {
         fetchSubscription();
     }, []);
 
+    // Auto-unlock for Premium users
+    useEffect(() => {
+        if (subscription?.plan === 'premium') {
+            setResourcesUnlocked(true);
+            setIsSolutionUnlocked(true);
+            setShowTeaserModal(false);
+        }
+    }, [subscription]);
+
     useEffect(() => {
         if (pattern?.id) {
             setExpandedPatterns(prev => ({ ...prev, [pattern.id]: true }));
@@ -306,7 +315,9 @@ export default function DSAItemDetail() {
                 // Initial unlock check
                 if (clip?.videoId) {
                     const watched = isVideoWatched(clip.videoId, clip.startTime, clip.endTime);
-                    setIsSolutionUnlocked(watched);
+                    const unlockedItems = JSON.parse(localStorage.getItem('dsa-unlocked-resources') || '[]');
+                    const isManuallyUnlocked = unlockedItems.includes(item.id);
+                    setIsSolutionUnlocked(watched || isManuallyUnlocked);
                 } else {
                     // Unlock if no video required? Or default to locked?
                     // User requirement: "solution before video ends" -> implies video is main gate.
@@ -571,7 +582,7 @@ export default function DSAItemDetail() {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
-                                        className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+                                        className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
                                     >
                                         <motion.div
                                             initial={{ scale: 0.9, y: 20 }}
@@ -809,20 +820,29 @@ export default function DSAItemDetail() {
                                                 if (primaryNote) {
                                                     // Handle PDF notes
                                                     if (isPdf || primaryNote.toLowerCase().includes('.pdf')) {
+                                                        const googleDocsViewer = `https://docs.google.com/gview?url=${encodeURIComponent(primaryNote)}&embedded=true`;
                                                         return (
-                                                            <div className="text-center py-8">
-                                                                <FileText className="w-16 h-16 mx-auto mb-4 text-orange-500" />
-                                                                <h3 className="text-xl font-bold text-white mb-2">PDF Lecture Notes Available</h3>
-                                                                <p className="text-gray-400 mb-6">Click below to view the PDF notes for this problem</p>
-                                                                <a
-                                                                    href={primaryNote}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all hover:scale-105"
-                                                                >
-                                                                    <ExternalLink className="w-5 h-5" />
-                                                                    View PDF Notes
-                                                                </a>
+                                                            <div className="space-y-4">
+                                                                <div className="w-full h-[600px] bg-[#12121a] border border-gray-800 rounded-xl overflow-hidden relative">
+                                                                    <iframe
+                                                                        src={primaryNote.includes('drive.google.com') ? primaryNote.replace('/view', '/preview') : primaryNote}
+                                                                        className="w-full h-full"
+                                                                        title="Lecture Notes"
+                                                                        allow="autoplay"
+                                                                    />
+                                                                    {/* Fallback for browsers that block mixed content or iframes */}
+                                                                    <div className="absolute bottom-4 right-4 z-10">
+                                                                        <a
+                                                                            href={primaryNote}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="px-4 py-2 bg-gray-900/80 backdrop-blur-md border border-gray-700 text-white text-xs font-bold rounded-lg flex items-center gap-2 hover:bg-black transition-colors"
+                                                                        >
+                                                                            <ExternalLink className="w-3 h-3" />
+                                                                            Open in New Tab
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         );
                                                     }

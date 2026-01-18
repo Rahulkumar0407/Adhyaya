@@ -62,7 +62,7 @@ export default function RoadmapSection() {
     ];
 
     return (
-        <section ref={sectionRef} className="py-20 bg-[#0f0f0f]">
+        <section id="roadmap-section" ref={sectionRef} className="py-20 bg-[#0f0f0f] scroll-mt-24">
             <div className="container-babua">
                 {/* Header */}
                 <div className="text-center mb-16">

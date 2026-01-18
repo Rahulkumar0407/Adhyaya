@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Calendar as CalendarIcon, Clock, ShieldCheck,
     CreditCard, ArrowLeft, Star, Building2,
-    Award, Zap, CheckCircle2, ChevronRight
+    Award, Zap, CheckCircle2, ChevronRight, AlertCircle, Wallet
 } from 'lucide-react';
+import api from '../services/api';
+import toast from 'react-hot-toast';
 
 const interviewers = [
     { id: 1, name: 'Ankita Sharma', role: 'SDE-3 @ Google', rating: 4.9, sessions: 154, price: 399, image: '👩‍💼', bio: 'Expert in DSA and System Design with 6+ years of industry experience. I focus on core problem-solving intuition and backend scalability.', company: 'Google', experience: '6+ Years', expertise: ['DSA', 'System Design', 'Scalability'], education: 'B.Tech IT, NIT Allahabad' },
@@ -24,6 +26,9 @@ const InterviewerDetail = () => {
     const [step, setStep] = useState(1); // 1: Details, 2: Schedule, 3: Payment
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [isLoadingWallet, setIsLoadingWallet] = useState(true);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const dates = [
         { day: 'Mon', date: '15 Jan' },
@@ -39,10 +44,66 @@ const InterviewerDetail = () => {
 
     const [isBooked, setIsBooked] = useState(false);
 
-    const handleNextStep = () => {
+    // Fetch wallet balance on mount
+    useEffect(() => {
+        const fetchWallet = async () => {
+            try {
+                const response = await api.get('/wallet');
+                if (response.data.success) {
+                    setWalletBalance(response.data.data.balance || 0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch wallet:', error);
+                setWalletBalance(0);
+            } finally {
+                setIsLoadingWallet(false);
+            }
+        };
+        fetchWallet();
+    }, []);
+
+    const balance = parseFloat(walletBalance) || 0;
+    const price = parseFloat(interviewer.price) || 0;
+    const hasInsufficientBalance = balance < price;
+
+    const handleNextStep = async () => {
         if (step === 1) setStep(2);
         else if (step === 2 && selectedDate && selectedSlot) setStep(3);
-        else if (step === 3) setIsBooked(true);
+        else if (step === 3) {
+            // Check wallet balance before booking
+            if (hasInsufficientBalance) {
+                toast.error(`Insufficient balance! You need ₹${interviewer.price} but have ₹${walletBalance}. Please top up your wallet.`);
+                return;
+            }
+
+            setIsProcessing(true);
+            try {
+                // Debit wallet for the booking
+                const debitResponse = await api.post('/wallet/debit', {
+                    amount: interviewer.price,
+                    type: 'interview_booking',
+                    description: `Interview session with ${interviewer.name}`,
+                    metadata: {
+                        interviewerId: interviewer.id,
+                        interviewerName: interviewer.name,
+                        date: dates[selectedDate]?.date,
+                        slot: slots[selectedSlot]
+                    }
+                });
+
+                if (debitResponse.data.success) {
+                    toast.success('Payment successful! Booking confirmed.');
+                    setIsBooked(true);
+                } else {
+                    toast.error(debitResponse.data.message || 'Payment failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Booking payment failed:', error);
+                toast.error(error.response?.data?.message || 'Payment failed. Please try again.');
+            } finally {
+                setIsProcessing(false);
+            }
+        }
     };
 
     if (isBooked) {
@@ -257,13 +318,35 @@ const InterviewerDetail = () => {
                                 </div>
 
                                 <div className="space-y-4 mb-10">
+                                    {/* Wallet Balance Display */}
+                                    <div className={`flex justify-between items-center p-4 rounded-2xl border ${hasInsufficientBalance ? 'bg-red-500/10 border-red-500/30' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
+                                        <div className="flex items-center gap-2">
+                                            <Wallet className={`w-5 h-5 ${hasInsufficientBalance ? 'text-red-400' : 'text-emerald-400'}`} />
+                                            <span className={`font-bold ${hasInsufficientBalance ? 'text-red-400' : 'text-emerald-400'}`}>Wallet Balance</span>
+                                        </div>
+                                        <span className={`font-black ${hasInsufficientBalance ? 'text-red-400' : 'text-emerald-400'}`}>
+                                            {isLoadingWallet ? '...' : `₹${walletBalance}`}
+                                        </span>
+                                    </div>
+
+                                    {hasInsufficientBalance && (
+                                        <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                                            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                                            <span className="text-red-400 text-sm">
+                                                Insufficient balance. You need ₹{interviewer.price - walletBalance} more.
+                                                <button
+                                                    onClick={() => navigate('/wallet')}
+                                                    className="underline ml-1 hover:text-red-300"
+                                                >
+                                                    Top up now
+                                                </button>
+                                            </span>
+                                        </div>
+                                    )}
+
                                     <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
                                         <span className="text-slate-500 font-bold">Session Fee</span>
                                         <span className="font-black">₹{interviewer.price}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
-                                        <span className="text-slate-500 font-bold">Coupon (N/A)</span>
-                                        <span className="text-slate-600 font-bold">Apply Code</span>
                                     </div>
                                     <div className="h-px bg-white/10 my-2" />
                                     <div className="flex justify-between items-center p-4">
@@ -275,13 +358,19 @@ const InterviewerDetail = () => {
                                 <div className="space-y-4">
                                     <button
                                         onClick={handleNextStep}
-                                        className="w-full py-6 bg-emerald-500 text-white font-black uppercase tracking-[0.2em] text-sm rounded-[2rem] hover:shadow-[0_0_40px_rgba(16,185,129,0.3)] transition-all"
+                                        disabled={isProcessing || hasInsufficientBalance}
+                                        className={`w-full py-6 font-black uppercase tracking-[0.2em] text-sm rounded-[2rem] transition-all ${hasInsufficientBalance
+                                            ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                                            : isProcessing
+                                                ? 'bg-emerald-600 text-white cursor-wait'
+                                                : 'bg-emerald-500 text-white hover:shadow-[0_0_40px_rgba(16,185,129,0.3)]'
+                                            }`}
                                     >
-                                        Pay & Confirm
+                                        {isProcessing ? 'Processing...' : hasInsufficientBalance ? 'Insufficient Balance' : 'Pay & Confirm'}
                                     </button>
                                     <div className="flex justify-center gap-4 py-4 opacity-50">
                                         <ShieldCheck className="w-5 h-5" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Secure 128-bit Encryption</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Secure Wallet Payment</span>
                                     </div>
                                 </div>
                             </div>

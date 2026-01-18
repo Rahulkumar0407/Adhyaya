@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const transactionSchema = new mongoose.Schema({
     type: {
         type: String,
-        enum: ['topup', 'call_charge', 'doubt_charge', 'interview_charge', 'refund', 'bonus', 'withdrawal'],
+        enum: ['topup', 'call_charge', 'doubt_charge', 'interview_charge', 'refund', 'bonus', 'withdrawal', 'subscription'],
         required: true
     },
     amount: {
@@ -54,7 +54,7 @@ const walletSchema = new mongoose.Schema({
     // Balance (₹100 welcome bonus for new users)
     balance: {
         type: Number,
-        default: 100,
+        default: 0,
         min: 0
     },
 

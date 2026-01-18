@@ -1,9 +1,10 @@
 import React from 'react';
 import { Crown, Medal, Award, ArrowUp, ArrowDown, Minus, Flame, Clock, Target, TrendingUp } from 'lucide-react';
+import { getAvatarUrl } from '../../utils/imageUtils';
 import RankChangeIndicator from './RankChangeIndicator';
 import BabuaTitleBadge from './BabuaTitleBadge';
 
-export default function LeaderboardTable({ rankings, category, loading, currentUserId }) {
+export default function LeaderboardTable({ rankings, category, loading, currentUserId, currentUserAvatar }) {
     if (loading) {
         return (
             <div className="p-8 flex items-center justify-center">
@@ -119,17 +120,26 @@ export default function LeaderboardTable({ rankings, category, loading, currentU
                                     entry.rank === 2 ? 'ring-gray-400' :
                                         entry.rank === 3 ? 'ring-amber-600' : ''
                                 }`}>
-                                {entry.user?.avatar ? (
+                                {/* Use fresh avatar for current user, fallback to cached data for others */}
+                                {(isCurrentUser ? currentUserAvatar : entry.user?.avatar) ? (
                                     <img
-                                        src={entry.user.avatar}
+                                        src={getAvatarUrl(isCurrentUser ? currentUserAvatar : entry.user.avatar)}
                                         alt={entry.user.name}
                                         className="w-full h-full rounded-full object-cover"
+                                        onError={(e) => {
+                                            // Hide broken image and show fallback
+                                            e.target.style.display = 'none';
+                                            e.target.nextSibling.style.display = 'flex';
+                                        }}
                                     />
-                                ) : (
-                                    <div className="w-full h-full rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold text-sm">
-                                        {entry.user?.name?.charAt(0)?.toUpperCase() || '?'}
-                                    </div>
-                                )}
+                                ) : null}
+                                {/* Fallback initial - always rendered but hidden when image loads successfully */}
+                                <div
+                                    className="w-full h-full rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold text-sm"
+                                    style={{ display: (isCurrentUser ? currentUserAvatar : entry.user?.avatar) ? 'none' : 'flex' }}
+                                >
+                                    {entry.user?.name?.charAt(0)?.toUpperCase() || '?'}
+                                </div>
                             </div>
                         </div>
 

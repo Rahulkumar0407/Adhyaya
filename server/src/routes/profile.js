@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect } from '../middlewares/auth.js';
+import upload from '../services/uploadService.js';
 import profileController from '../controllers/profileController.js';
 
 const router = express.Router();
@@ -11,6 +12,21 @@ router.use(protect);
 router.get('/', profileController.getProfile);
 router.patch('/', profileController.updateProfile);
 router.put('/', profileController.updateProfile);
+
+const uploadAvatar = (req, res, next) => {
+    upload.single('avatar')(req, res, (err) => {
+        if (err) {
+            console.error('Avatar Upload Error:', err);
+            return res.status(400).json({
+                success: false,
+                message: err.message || 'Image upload failed'
+            });
+        }
+        next();
+    });
+};
+
+router.post('/avatar', uploadAvatar, profileController.updateAvatar);
 
 // Activity & Streak routes
 router.post('/activity', profileController.recordActivity);

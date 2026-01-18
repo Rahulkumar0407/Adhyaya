@@ -5,6 +5,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Loader from '../components/common/Loader';
 import { toast } from 'react-hot-toast';
+import TransactionHistoryModal from '../components/common/TransactionHistoryModal';
 
 // Helper to check if transaction is a credit (money in)
 const isCreditTransaction = (type) => ['topup', 'bonus', 'refund'].includes(type);
@@ -18,12 +19,14 @@ const WalletPage = () => {
     const [amount, setAmount] = useState('');
     const [processing, setProcessing] = useState(false);
     const [showFullQr, setShowFullQr] = useState(false);
+    const [sendingNotification, setSendingNotification] = useState(false);
+    const [utrNumber, setUtrNumber] = useState('');
 
     // Coupon & Payment states
     const [couponCode, setCouponCode] = useState('');
     const [couponDetails, setCouponDetails] = useState(null);
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
-    const [paymentStep, setPaymentStep] = useState('input'); // input, confirm
+    const [paymentStep, setPaymentStep] = useState('input'); // input, confirm, notify
     const [paymentOrder, setPaymentOrder] = useState(null);
 
     // Mentor withdrawal states
@@ -34,6 +37,8 @@ const WalletPage = () => {
         ifscCode: '',
         accountHolderName: ''
     });
+
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
 
     useEffect(() => {
         fetchWalletData();
@@ -153,9 +158,47 @@ const WalletPage = () => {
             }
         } catch (error) {
             console.error('Payment verification failed:', error);
-            toast.error('Payment verification failed. Please contact support.');
+            toast.error(error.response?.data?.message || 'Payment verification failed. Please contact support.');
         } finally {
             setProcessing(false);
+        }
+    };
+
+    // Notify admin about manual payment
+    const handleNotifyAdmin = async () => {
+        if (!amount || parseInt(amount) < 50) {
+            toast.error('Please enter a valid amount (min ₹50)');
+            return;
+        }
+        if (!utrNumber.trim()) {
+            toast.error('Please enter UTR/Transaction ID');
+            return;
+        }
+
+        try {
+            setSendingNotification(true);
+            const response = await api.post('/wallet/notify-payment', {
+                amount: parseInt(amount),
+                utrNumber: utrNumber.trim(),
+                orderId: paymentOrder?.orderId || `manual_${Date.now()}`,
+                couponCode: couponDetails ? couponCode : null
+            });
+
+            if (response.data.success) {
+                toast.success('Payment notification sent! Admin will verify and credit your wallet within 24 hours.');
+                setAmount('');
+                setUtrNumber('');
+                setCouponCode('');
+                setCouponDetails(null);
+                setPaymentStep('input');
+                setShowFullQr(false);
+                setPaymentOrder(null);
+            }
+        } catch (error) {
+            console.error('Failed to send notification:', error);
+            toast.error(error.response?.data?.message || 'Failed to send notification. Please try again.');
+        } finally {
+            setSendingNotification(false);
         }
     };
 
@@ -482,6 +525,15 @@ const WalletPage = () => {
                             <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
                                 {paymentStep === 'input' ? (
                                     <div className="space-y-4">
+                                        <div className="flex justify-center">
+                                            <button
+                                                onClick={() => setShowFullQr(true)}
+                                                className="w-full text-xs flex items-center justify-center gap-2 text-emerald-400 hover:text-emerald-300 font-bold bg-emerald-400/10 px-4 py-3 rounded-xl border border-emerald-400/20 transition-all hover:bg-emerald-400/20"
+                                            >
+                                                <Maximize2 className="w-4 h-4" />
+                                                Scan QR to Pay
+                                            </button>
+                                        </div>
                                         <div>
                                             <label className="block text-slate-400 text-sm font-bold mb-2">Enter Amount</label>
                                             <div className="relative">
@@ -597,7 +649,10 @@ const WalletPage = () => {
                                     <History className="w-5 h-5 text-violet-400" />
                                     Transaction History
                                 </h3>
-                                <button className="text-sm text-cyan-400 hover:text-cyan-300 font-bold">
+                                <button
+                                    className="text-sm text-cyan-400 hover:text-cyan-300 font-bold"
+                                    onClick={() => setShowHistoryModal(true)}
+                                >
                                     View All
                                 </button>
                             </div>
@@ -669,7 +724,7 @@ const WalletPage = () => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white p-4 rounded-3xl max-w-lg w-full relative"
+                            className="bg-white p-6 rounded-3xl max-w-lg w-full relative max-h-[90vh] overflow-y-auto"
                             onClick={e => e.stopPropagation()}
                         >
                             <button
@@ -679,11 +734,11 @@ const WalletPage = () => {
                                 <X className="w-6 h-6" />
                             </button>
                             <h3 className="text-xl font-bold text-center mb-4 text-gray-900">Scan to Pay</h3>
-                            <div className="bg-white p-4 rounded-xl shadow-inner border border-gray-100 flex flex-col items-center justify-center">
+                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex flex-col items-center justify-center">
                                 <img
                                     src="/assets/payment-qr.png"
                                     alt="Payment QR Code"
-                                    className="w-full h-auto max-h-[50vh] object-contain"
+                                    className="w-64 h-64 object-contain"
                                 />
                                 {paymentOrder && (
                                     <div className="mt-4 text-center">
@@ -692,17 +747,86 @@ const WalletPage = () => {
                                     </div>
                                 )}
                             </div>
+
                             <p className="text-center text-gray-500 mt-4 text-sm">Scan with any UPI app and complete payment</p>
-                            <button
-                                onClick={handleVerifyPayment}
-                                className="w-full mt-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors"
-                            >
-                                I Have Paid
-                            </button>
+
+                            {/* Amount and UTR Input for Manual Verification */}
+                            <div className="mt-4 space-y-3">
+                                <div>
+                                    <label className="block text-gray-600 text-sm font-medium mb-1">
+                                        Amount Paid (₹) <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        placeholder="Enter amount you paid"
+                                        min="50"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-800 font-bold focus:outline-none focus:border-emerald-500 placeholder-gray-400"
+                                    />
+                                    <p className="text-xs text-gray-400 mt-1">Min: ₹50</p>
+                                </div>
+                                <div>
+                                    <label className="block text-gray-600 text-sm font-medium mb-1">
+                                        UTR / Transaction ID <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={utrNumber}
+                                        onChange={(e) => setUtrNumber(e.target.value)}
+                                        placeholder="Enter UPI transaction ID"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-800 font-mono focus:outline-none focus:border-emerald-500 placeholder-gray-400"
+                                    />
+                                    <p className="text-xs text-gray-400 mt-1">Find this in your payment app's transaction history</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 space-y-4">
+                                <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-sm space-y-2 text-left">
+                                    <h4 className="font-bold text-blue-900 flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4" />
+                                        Important Instructions:
+                                    </h4>
+                                    <ul className="list-disc list-inside text-blue-800 space-y-1 ml-1">
+                                        <li>Please verify the account holder name: <strong>Rahul Kumar</strong></li>
+                                        <li>Add your <strong>registered email ID</strong> in the payment note/remarks.</li>
+                                        <li>Take a screenshot of the payment for your records.</li>
+                                    </ul>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <button
+                                        onClick={handleNotifyAdmin}
+                                        disabled={sendingNotification || !utrNumber.trim() || !amount || parseInt(amount) < 50}
+                                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        {sendingNotification ? (
+                                            <>
+                                                <span className="animate-spin">⏳</span>
+                                                Sending...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle2 className="w-5 h-5" />
+                                                Notify Admin - I Have Paid
+                                            </>
+                                        )}
+                                    </button>
+                                    <p className="text-center text-gray-400 text-xs">
+                                        Admin will verify payment and credit your wallet within 24 hours
+                                    </p>
+                                </div>
+                            </div>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Transaction History Modal */}
+            <TransactionHistoryModal
+                isOpen={showHistoryModal}
+                onClose={() => setShowHistoryModal(false)}
+            />
         </div>
     );
 };

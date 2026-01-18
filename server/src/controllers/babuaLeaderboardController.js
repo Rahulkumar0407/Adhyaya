@@ -33,9 +33,12 @@ export const getBabuaOfMonth = catchAsync(async (req, res) => {
 /**
  * Get Max Streak Leaderboard
  */
+/**
+ * Get Max Streak Leaderboard
+ */
 export const getMaxStreakLeaderboard = catchAsync(async (req, res) => {
-    const { limit = 10, page = 1 } = req.query;
-    const cacheKey = `leaderboard:max-streak:${limit}:${page}`;
+    const { period = 'all-time', limit = 10, page = 1 } = req.query;
+    const cacheKey = `leaderboard:max-streak:${period}:${limit}:${page}`;
 
     // Try cache (5 minutes)
     const cached = await CacheService.get(cacheKey);
@@ -48,6 +51,7 @@ export const getMaxStreakLeaderboard = catchAsync(async (req, res) => {
     }
 
     const leaderboard = await BabuaLeaderboardService.getMaxStreakLeaderboard(
+        period,
         parseInt(limit),
         parseInt(page)
     );
@@ -95,8 +99,8 @@ export const getFocusMastersLeaderboard = catchAsync(async (req, res) => {
  * Get Consistency Leaderboard
  */
 export const getConsistencyLeaderboard = catchAsync(async (req, res) => {
-    const { limit = 10, page = 1 } = req.query;
-    const cacheKey = `leaderboard:consistency:${limit}:${page}`;
+    const { period = 'all-time', limit = 10, page = 1 } = req.query;
+    const cacheKey = `leaderboard:consistency:${period}:${limit}:${page}`;
 
     // Try cache (5 minutes)
     const cached = await CacheService.get(cacheKey);
@@ -109,6 +113,7 @@ export const getConsistencyLeaderboard = catchAsync(async (req, res) => {
     }
 
     const leaderboard = await BabuaLeaderboardService.getConsistencyLeaderboard(
+        period,
         parseInt(limit),
         parseInt(page)
     );
@@ -125,8 +130,8 @@ export const getConsistencyLeaderboard = catchAsync(async (req, res) => {
  * Get Weekly Climbers Leaderboard
  */
 export const getWeeklyClimbersLeaderboard = catchAsync(async (req, res) => {
-    const { limit = 10 } = req.query;
-    const cacheKey = `leaderboard:weekly-climbers:${limit}`;
+    const { period = 'weekly', limit = 10 } = req.query;
+    const cacheKey = `leaderboard:weekly-climbers:${period}:${limit}`;
 
     // Try cache (10 minutes)
     const cached = await CacheService.get(cacheKey);
@@ -139,6 +144,7 @@ export const getWeeklyClimbersLeaderboard = catchAsync(async (req, res) => {
     }
 
     const leaderboard = await BabuaLeaderboardService.getWeeklyClimbersLeaderboard(
+        period,
         parseInt(limit)
     );
 

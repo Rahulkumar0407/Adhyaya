@@ -16,7 +16,7 @@ const QuizConfigModal = ({ isOpen, onClose, onStart, topicTitle }) => {
 
     const handleStart = () => {
         onStart({ questionCount, startDifficulty, adaptiveDifficulty });
-        onClose();
+        // Don't call onClose() here - it navigates away before quiz loads!
     };
 
     if (!isOpen) return null;

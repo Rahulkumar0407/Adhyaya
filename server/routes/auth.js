@@ -100,9 +100,11 @@ router.post('/firebase-login', async (req, res) => {
             data: {
                 user: {
                     id: user._id,
+                    _id: user._id,
                     email: user.email,
                     name: user.name,
                     role: user.role,
+                    avatar: user.avatar,
                     streakCount: user.streakCount,
                     longestStreak: user.longestStreak,
                     babuaCoins: user.babuaCoins,
@@ -228,9 +230,11 @@ router.post('/login', async (req, res) => {
             data: {
                 user: {
                     id: user._id,
+                    _id: user._id,
                     email: user.email,
                     name: user.name,
                     role: user.role,
+                    avatar: user.avatar,
                     streakCount: user.streakCount,
                     longestStreak: user.longestStreak,
                     babuaCoins: user.babuaCoins,

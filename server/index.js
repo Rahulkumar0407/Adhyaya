@@ -40,6 +40,8 @@ import notificationRoutes from './src/routes/notification.js';
 import interviewRoutes from './routes/interview.js';
 // Focus Mode routes
 import focusRoutes from './routes/focus.js';
+// Leaderboard routes
+import leaderboardRoutes from './src/routes/leaderboard.js';
 // Public routes
 import publicRoutes from './routes/public.js';
 
@@ -81,6 +83,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 // Session configuration (needed for OAuth)
 app.use(session({
@@ -132,6 +135,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/interview', interviewRoutes);
 // Focus Mode Routes
 app.use('/api/focus', focusRoutes);
+// Leaderboard Routes
+app.use('/api/leaderboard', leaderboardRoutes);
 // Public Routes
 app.use('/api/public', publicRoutes);
 

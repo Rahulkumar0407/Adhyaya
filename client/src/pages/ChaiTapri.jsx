@@ -228,6 +228,7 @@ export default function ChaiTapri() {
     const navigate = useNavigate();
     const [activeChannel, setActiveChannel] = useState('general');
     const [messages, setMessages] = useState([]);
+    const [announcements, setAnnouncements] = useState([]);
     const [message, setMessage] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [onlineCount, setOnlineCount] = useState(0);
@@ -275,6 +276,11 @@ export default function ChaiTapri() {
             setOnlineCount(count);
         });
 
+        // Listen for new announcements in real-time
+        newSocket.on('announcement:new', (announcement) => {
+            setAnnouncements(prev => [announcement, ...prev]);
+        });
+
         setSocket(newSocket);
 
         return () => {
@@ -290,7 +296,12 @@ export default function ChaiTapri() {
             socket.emit('leave-chat', activeChannel);
             socket.emit('join-chat', activeChannel);
         }
-        fetchMessages();
+        // Fetch announcements or messages based on channel
+        if (activeChannel === 'announcements') {
+            fetchAnnouncements();
+        } else {
+            fetchMessages();
+        }
     }, [activeChannel, socket]);
 
     // Fetch messages from API
@@ -308,6 +319,21 @@ export default function ChaiTapri() {
             }
         } catch (error) {
             console.error('Error fetching messages:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Fetch announcements from public API
+    const fetchAnnouncements = async () => {
+        try {
+            setLoading(true);
+            const response = await api.get('/public/announcements');
+            if (response.data.success) {
+                setAnnouncements(response.data.announcements);
+            }
+        } catch (error) {
+            console.error('Error fetching announcements:', error);
         } finally {
             setLoading(false);
         }
@@ -615,6 +641,72 @@ export default function ChaiTapri() {
                                 <div className="flex items-center justify-center py-10">
                                     <div className="animate-spin w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full"></div>
                                 </div>
+                            ) : activeChannel === 'announcements' ? (
+                                /* Announcements View */
+                                announcements.length === 0 ? (
+                                    <div className="text-center py-10">
+                                        <div className="text-4xl mb-3">📢</div>
+                                        <p className="text-amber-600/60">No announcements yet. Stay tuned!</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {announcements.map((ann) => {
+                                            const typeColors = {
+                                                info: 'from-blue-500 to-cyan-500',
+                                                warning: 'from-amber-500 to-orange-500',
+                                                success: 'from-emerald-500 to-green-500',
+                                                urgent: 'from-red-500 to-rose-500',
+                                                maintenance: 'from-purple-500 to-violet-500'
+                                            };
+                                            const typeBadgeColors = {
+                                                info: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+                                                warning: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+                                                success: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+                                                urgent: 'bg-red-500/20 text-red-400 border-red-500/30',
+                                                maintenance: 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                                            };
+                                            const color = typeColors[ann.type] || typeColors.info;
+                                            const badgeColor = typeBadgeColors[ann.type] || typeBadgeColors.info;
+
+                                            return (
+                                                <div key={ann._id} className="bg-amber-900/20 border border-amber-800/30 rounded-xl p-5 hover:bg-amber-900/30 transition-colors">
+                                                    <div className="flex items-start gap-4">
+                                                        <div className={`w-12 h-12 bg-gradient-to-br ${color} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                                                            <Megaphone className="w-6 h-6 text-white" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                                                                <h4 className="font-bold text-white">{ann.title}</h4>
+                                                                <span className={`text-xs px-2 py-0.5 rounded-full border ${badgeColor} uppercase font-bold`}>
+                                                                    {ann.type}
+                                                                </span>
+                                                                {ann.isPinned && (
+                                                                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                                                        📌 Pinned
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-amber-100/70 whitespace-pre-wrap mb-3">{ann.message}</p>
+                                                            <div className="flex items-center gap-3 text-xs text-amber-600/50">
+                                                                <span>By Admin</span>
+                                                                <span>•</span>
+                                                                <span>{new Date(ann.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                            </div>
+                                                            {ann.action?.url && (
+                                                                <a
+                                                                    href={ann.action.url}
+                                                                    className="inline-flex items-center gap-1 mt-3 px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg text-sm font-medium transition-colors"
+                                                                >
+                                                                    {ann.action.label || 'Learn More'} →
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )
                             ) : messages.length === 0 ? (
                                 <div className="text-center py-10">
                                     <div className="text-4xl mb-3">☕</div>
@@ -665,37 +757,47 @@ export default function ChaiTapri() {
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Message Input */}
-                        <div className="bg-[#1e1814]/80 backdrop-blur border-t border-amber-900/30 px-6 py-4">
-                            <div className="max-w-4xl mx-auto">
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={message}
-                                        onChange={(e) => setMessage(e.target.value)}
-                                        onKeyPress={handleKeyPress}
-                                        placeholder={token ? "Ask a question or help someone..." : "Login to send messages"}
-                                        disabled={!token}
-                                        className="w-full bg-amber-900/20 border border-amber-800/30 rounded-xl pl-4 pr-24 py-4 text-white placeholder-amber-600/40 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-600/50 transition-all disabled:opacity-50"
-                                    />
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                        <button className="text-amber-600/50 hover:text-amber-400 p-2 transition-colors">
-                                            <Paperclip className="w-5 h-5" />
-                                        </button>
-                                        <button
-                                            onClick={sendMessage}
-                                            disabled={!token || !message.trim()}
-                                            className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white p-2.5 rounded-lg transition-all hover:scale-105 shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:hover:scale-100"
-                                        >
-                                            <Send className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="text-amber-600/40 text-xs mt-2 px-1">
-                                    <span className="text-amber-500">Enter</span> to send. <span className="text-amber-500">Shift + Enter</span> for new line. Markdown supported.
+                        {/* Message Input - Hidden for announcements channel */}
+                        {activeChannel === 'announcements' ? (
+                            <div className="bg-[#1e1814]/80 backdrop-blur border-t border-amber-900/30 px-6 py-4">
+                                <div className="max-w-4xl mx-auto text-center">
+                                    <p className="text-amber-600/50 text-sm">
+                                        📢 This is a read-only channel for official announcements from the ADHYAYA team.
+                                    </p>
                                 </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="bg-[#1e1814]/80 backdrop-blur border-t border-amber-900/30 px-6 py-4">
+                                <div className="max-w-4xl mx-auto">
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={message}
+                                            onChange={(e) => setMessage(e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder={token ? "Ask a question or help someone..." : "Login to send messages"}
+                                            disabled={!token}
+                                            className="w-full bg-amber-900/20 border border-amber-800/30 rounded-xl pl-4 pr-24 py-4 text-white placeholder-amber-600/40 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-600/50 transition-all disabled:opacity-50"
+                                        />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                            <button className="text-amber-600/50 hover:text-amber-400 p-2 transition-colors">
+                                                <Paperclip className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                onClick={sendMessage}
+                                                disabled={!token || !message.trim()}
+                                                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white p-2.5 rounded-lg transition-all hover:scale-105 shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:hover:scale-100"
+                                            >
+                                                <Send className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="text-amber-600/40 text-xs mt-2 px-1">
+                                        <span className="text-amber-500">Enter</span> to send. <span className="text-amber-500">Shift + Enter</span> for new line. Markdown supported.
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
             </div>

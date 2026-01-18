@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import PrefetchLink from '../common/PrefetchLink';
 import { useAuth } from '../../context/AuthContext';
+import { getAvatarUrl, getInitialsDataUrl } from '../../utils/imageUtils';
 import {
     Home,
     BookOpen,
@@ -92,8 +93,17 @@ export default function DashboardSidebar() {
             {/* User Profile at Bottom */}
             <div className="p-4 border-t border-gray-800">
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                        {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold overflow-hidden border border-white/10">
+                        {user?.avatar ? (
+                            <img
+                                src={getAvatarUrl(user.avatar)}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = getInitialsDataUrl(user?.name || user?.email); }}
+                            />
+                        ) : (
+                            user?.name?.charAt(0)?.toUpperCase() || 'U'
+                        )}
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-white truncate">

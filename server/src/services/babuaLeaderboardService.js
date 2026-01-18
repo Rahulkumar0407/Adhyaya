@@ -42,7 +42,13 @@ class BabuaLeaderboardService {
     /**
      * Get Max Streak Leaderboard
      */
-    static async getMaxStreakLeaderboard(limit = 10, page = 1) {
+    static async getMaxStreakLeaderboard(period = 'all-time', limit = 10, page = 1) {
+        // Streak is always all-time for now as historical streak tracking is complex
+        // We accept 'period' to prevent API errors but ignore it for logic
+        return this.getMaxStreakLeaderboardAllTime(limit, page);
+    }
+
+    static async getMaxStreakLeaderboardAllTime(limit, page) {
         const skip = (page - 1) * limit;
 
         const [rankings, total] = await Promise.all([
@@ -57,8 +63,9 @@ class BabuaLeaderboardService {
 
         return {
             category: 'max-streak',
+            period: 'all-time',
             rankings: rankings
-                .filter(stat => stat.userId) // Ensure user exists
+                .filter(stat => stat.userId)
                 .map((stat, index) => ({
                     rank: skip + index + 1,
                     user: {
@@ -80,10 +87,15 @@ class BabuaLeaderboardService {
      * Get Focus Masters Leaderboard (total focus time)
      */
     static async getFocusMastersLeaderboard(period = 'all-time', limit = 10, page = 1) {
-        const skip = (page - 1) * limit;
+        if (period === 'all-time') {
+            return this.getFocusMastersAllTime(limit, page);
+        }
 
-        // For now, we only have total focus minutes in FocusSettings
-        // Weekly/monthly would require separate tracking
+        return this.getAggregatedLeaderboard('focus-masters', period, limit, page);
+    }
+
+    static async getFocusMastersAllTime(limit, page) {
+        const skip = (page - 1) * limit;
         const sortField = 'totalFocusMinutes';
 
         const [rankings, total] = await Promise.all([
@@ -98,7 +110,7 @@ class BabuaLeaderboardService {
 
         return {
             category: 'focus-masters',
-            period,
+            period: 'all-time',
             rankings: rankings
                 .filter(stat => stat.userId)
                 .map((stat, index) => ({
@@ -121,9 +133,17 @@ class BabuaLeaderboardService {
     }
 
     /**
-     * Get Consistency Leaderboard (based on sessions completed and avg score)
+     * Get Consistency Leaderboard (based on sessions completed)
      */
-    static async getConsistencyLeaderboard(limit = 10, page = 1) {
+    static async getConsistencyLeaderboard(period = 'all-time', limit = 10, page = 1) {
+        if (period === 'all-time') {
+            return this.getConsistencyAllTime(limit, page);
+        }
+
+        return this.getAggregatedLeaderboard('consistency', period, limit, page);
+    }
+
+    static async getConsistencyAllTime(limit, page) {
         const skip = (page - 1) * limit;
 
         const [rankings, total] = await Promise.all([
@@ -138,6 +158,7 @@ class BabuaLeaderboardService {
 
         return {
             category: 'consistency',
+            period: 'all-time',
             rankings: rankings
                 .filter(stat => stat.userId)
                 .map((stat, index) => ({
@@ -159,59 +180,105 @@ class BabuaLeaderboardService {
     }
 
     /**
-     * Get Weekly Climbers (users who improved most this week)
-     * For now, we'll show users with recent activity and good scores
+     * Helper to aggregate session data for time periods
      */
-    static async getWeeklyClimbersLeaderboard(limit = 10) {
-        // Get users with focus sessions in the last 7 days
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    static async getAggregatedLeaderboard(type, period, limit, page) {
+        const skip = (page - 1) * limit;
+        const startDate = new Date();
 
-        const recentSessions = await FocusSession.aggregate([
+        if (period === 'weekly') {
+            startDate.setDate(startDate.getDate() - 7);
+        } else if (period === 'monthly') {
+            startDate.setMonth(startDate.getMonth() - 1);
+        }
+
+        // Build aggregation pipeline
+        const pipeline = [
             {
                 $match: {
-                    startTime: { $gte: oneWeekAgo },
+                    startTime: { $gte: startDate },
                     status: 'completed'
                 }
             },
             {
                 $group: {
                     _id: '$userId',
-                    weeklyMinutes: { $sum: '$actualDuration' },
-                    sessionCount: { $sum: 1 },
-                    avgScore: { $avg: '$focusScore' }
+                    totalFocusMinutes: { $sum: '$actualDuration' },
+                    totalSessions: { $sum: 1 },
+                    avgFocusScore: { $avg: '$focusScore' }
                 }
-            },
-            { $sort: { weeklyMinutes: -1 } },
-            { $limit: limit }
+            }
+        ];
+
+        // Sort based on type
+        if (type === 'focus-masters') {
+            pipeline.push({ $sort: { totalFocusMinutes: -1 } });
+        } else {
+            // consistency
+            pipeline.push({ $sort: { totalSessions: -1, avgFocusScore: -1 } });
+        }
+
+        // Pagination
+        const [results, countResult] = await Promise.all([
+            FocusSession.aggregate([
+                ...pipeline,
+                { $skip: skip },
+                { $limit: limit }
+            ]),
+            FocusSession.aggregate([
+                ...pipeline,
+                { $count: 'total' }
+            ])
         ]);
 
-        // Populate user info
-        const userIds = recentSessions.map(s => s._id);
+        const total = countResult[0]?.total || 0;
+
+        // Populate users
+        const userIds = results.map(r => r._id);
         const users = await User.find({ _id: { $in: userIds } }).select('name avatar').lean();
         const userMap = new Map(users.map(u => [u._id.toString(), u]));
 
+        const rankings = results
+            .filter(stat => userMap.get(stat._id?.toString()))
+            .map((stat, index) => {
+                const user = userMap.get(stat._id.toString());
+                const score = type === 'focus-masters' ? stat.totalFocusMinutes : stat.avgFocusScore;
+
+                return {
+                    rank: skip + index + 1,
+                    user: {
+                        _id: stat._id,
+                        name: user?.name || 'Unknown',
+                        avatar: user?.avatar
+                    },
+                    score: Math.round(score * 10) / 10,
+                    focusMinutes: stat.totalFocusMinutes,
+                    sessionsCompleted: stat.totalSessions,
+                    avgFocusScore: Math.round(stat.avgFocusScore || 0),
+                    rankChange: { direction: 'none', amount: 0 }
+                };
+            });
+
         return {
-            category: 'weekly-climbers',
-            rankings: recentSessions
-                .filter(stat => userMap.get(stat._id?.toString()))
-                .map((stat, index) => {
-                    const user = userMap.get(stat._id.toString());
-                    return {
-                        rank: index + 1,
-                        user: {
-                            _id: stat._id,
-                            name: user?.name || 'Unknown',
-                            avatar: user?.avatar
-                        },
-                        weeklyMinutes: stat.weeklyMinutes || 0,
-                        sessionCount: stat.sessionCount || 0,
-                        avgScore: Math.round(stat.avgScore || 0),
-                        rankImprovement: stat.sessionCount // Use session count as "improvement" indicator
-                    };
-                }),
-            total: recentSessions.length
+            category: type,
+            period,
+            rankings,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit)
         };
+    }
+
+    /**
+     * Get Weekly Climbers (users who improved most this period)
+     */
+    static async getWeeklyClimbersLeaderboard(period = 'weekly', limit = 10) {
+        // Re-use aggregation but with specific period logic if needed
+        // For now, let's treat "Climbers" as "Most Active Recently" which is same as Focus Masters Weekly/Monthly
+        // But maybe we want to sort by 'sessions' instead of minutes for climbers?
+        // Let's stick to the previous logic but allow period adjustment
+
+        return this.getAggregatedLeaderboard('focus-masters', period, limit, 1);
     }
 
     /**

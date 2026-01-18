@@ -9,11 +9,19 @@ class AuthService {
     /**
      * Register a new user with email/password
      */
-    async register({ email, password, name }) {
+    async register({ email, password, name, username }) {
         // Check if user exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             throw { status: 400, message: 'User already exists with this email' };
+        }
+
+        // Check if username unique
+        if (username) {
+            const existingUsername = await User.findOne({ username });
+            if (existingUsername) {
+                throw { status: 400, message: 'Username is already taken' };
+            }
         }
 
         // Create user
@@ -21,6 +29,7 @@ class AuthService {
             email,
             password,
             name,
+            username: username || undefined, // undefined to allow sparse unique index
             authProvider: 'local',
             isEmailVerified: false,
             emailVerificationToken: crypto.randomBytes(32).toString('hex'),
@@ -41,11 +50,18 @@ class AuthService {
     }
 
     /**
-     * Login with email/password
+     * Login with email/password or username/password
      */
     async login({ email, password, deviceInfo, ipAddress, userAgent }) {
-        // Find user with password
-        const user = await User.findOne({ email }).select('+password');
+        // Determine if input is email or username
+        const isEmail = email.includes('@');
+
+        // Find user by email or username
+        const user = await User.findOne(
+            isEmail
+                ? { email: email.toLowerCase() }
+                : { username: email.toLowerCase() }
+        ).select('+password');
 
         if (!user) {
             throw { status: 401, message: 'Invalid credentials' };

@@ -19,6 +19,16 @@ const userSchema = new mongoose.Schema({
         trim: true,
         match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address']
     },
+    username: {
+        type: String,
+        unique: true,
+        sparse: true, // Allows null values while maintaining uniqueness for non-null
+        lowercase: true,
+        trim: true,
+        minlength: [3, 'Username must be at least 3 characters'],
+        maxlength: [30, 'Username cannot exceed 30 characters'],
+        match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores']
+    },
     password: {
         type: String,
         required: function () {
@@ -229,6 +239,7 @@ const userSchema = new mongoose.Schema({
 
 // Indexes
 userSchema.index({ email: 1 });
+userSchema.index({ username: 1 });
 userSchema.index({ googleId: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ 'sessions.refreshToken': 1 });

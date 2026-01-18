@@ -250,7 +250,7 @@ class GeminiService {
     getFallbackQuestion(interviewType, index = 0) {
         const fallbacks = {
             'dsa': [
-                "[TYPE:CODING] Alright, here's a problem for you. Given an array of integers and a target number, find two numbers in the array that add up to the target. Return their indices.\n\n**Example:**\nInput: nums = [2, 7, 11, 15], target = 9\nOutput: [0, 1]\nExplanation: The numbers at indices 0 and 1 add up to 9.\n\n**Constraints:**\n- Each input has exactly one solution\n- You cannot use the same element twice\n\n[PATTERN:hash_table]",
+                "[TYPE:CODING] Let's start with a warm-up. Given an integer array, return true if any value appears at least twice in the array, and return false if every element is distinct.\n\n**Example:**\nInput: nums = [1, 2, 3, 1]\nOutput: true\n\nInput: nums = [1, 2, 3, 4]\nOutput: false\n\n**Constraints:**\n- 1 <= nums.length <= 10^5\n- -10^9 <= nums[i] <= 10^9\n\n[PATTERN:hash_table]",
                 "[TYPE:CODING] Here's a problem for you. Given a string containing only parentheses characters - round (), square [], and curly {} brackets - determine if the brackets are balanced and properly nested.\n\n**Example:**\nInput: s = '()[]{}'\nOutput: true\n\nInput: s = '([)]'\nOutput: false\n\n**Constraints:**\n- The string only contains bracket characters\n- An empty string is considered valid\n\n[PATTERN:stack_queue]",
                 "[TYPE:CODING] Let's try this one. Given an integer array, find the contiguous subarray with the largest sum and return that sum.\n\n**Example:**\nInput: nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]\nOutput: 6\nExplanation: The subarray [4, -1, 2, 1] has the largest sum.\n\n**Constraints:**\n- Array can contain negative numbers\n- At least one element exists\n\n[PATTERN:dp]"
             ],
@@ -276,9 +276,12 @@ class GeminiService {
     }
 
     // DSA Patterns for tagging
+    // When recommending a topic:
+    // 1. YOU MUST use one of the EXACT slugs from the list below.
+    // 2. Do NOT invent new topics or use different formatting (e.g. use 'two-pointers', NOT 'two_pointers' or 'Two Pointers').
+    // 3. If no specific DSA pattern fits, use 'custom'.
     dsaPatterns = [
-        'sliding_window', 'two_pointer', 'binary_search', 'dp',
-        'graphs', 'trees', 'stack_queue', 'recursion', 'greedy', 'trie'
+        'sliding-window', 'two-pointers', 'fast-and-slow-pointers', 'merge-intervals', 'cyclic-sort', 'in-place-reversal-of-a-linked-list', 'tree-breadth-first-search', 'tree-depth-first-search', 'two-heaps', 'subsets', 'modified-binary-search', 'bitwise-xor', 'top-k-elements', 'k-way-merge', '0-1-knapsack', 'topological-sort-graph', 'dynamic-programming', 'graphs', 'trees', 'stack-queue', 'recursion', 'greedy', 'trie'
     ];
 
     // System Design patterns
@@ -404,7 +407,8 @@ CRITICAL RULES:
 3. Keep problems focused - one clear objective
 4. MUST include [TYPE:CODING] tag at the end
 5. Theory questions come ONLY as follow-ups after they submit code
-6. **NEVER reveal the famous problem name** (don't say "Two Sum", "Valid Parentheses", etc.) - describe the problem naturally instead`,
+6. **NEVER reveal the famous problem name** (don't say "Two Sum", "Valid Parentheses", etc.) - describe the problem naturally instead
+7. **Do NOT ask 'Two Sum' as the first question.** Choose a different easy/medium problem involving Arrays/Strings/HashMaps.`,
 
             'custom': `You are an expert technical interviewer. Generate a unique interview question for a ${customRole || 'Software Developer'} position.
 
@@ -509,7 +513,7 @@ Respond like you're TALKING to them, not reading from a script:
 3. Speak in a warm, conversational tone - like a helpful senior developer
 
 For "improvements", prioritize using these STANDARD KEYWORDS if they apply (so we can recommend resources):
-[DSA]: sliding_window, two_pointer, binary_search, dp, graphs, trees, recursion, stack_queue, linked_list, array, hash_table, string, sorting, heap, greedy, trie
+[DSA]: sliding-window, two-pointers, fast-and-slow-pointers, merge-intervals, cyclic-sort, in-place-reversal-of-a-linked-list, tree-breadth-first-search, tree-depth-first-search, two-heaps, subsets, modified-binary-search, bitwise-xor, top-k-elements, k-way-merge, 0-1-knapsack, topological-sort-graph, dynamic-programming, graphs, trees, stack-queue, recursion, greedy, trie
 [System Design]: scalability, caching, database_design, load_balancing, microservices, cdn, api_design
 [CS Core]: dbms, os, cn, sql, normalization, transactions
 [Soft Skills]: communication, confidence, clarity, structured_thinking
@@ -529,17 +533,34 @@ CONVERSATION STYLE EXAMPLES for followUp:
 - "Right, exactly! Can you walk me through how..."
 - "Interesting approach! What would you do if..."
 
-IMPORTANT:
-- Sound like a PERSON, not a robot reading questions
-- Keep it brief and conversational
-- One question at a time in followUp
-${interviewType === 'dsa' ? `
+IMPORTANT RULES FOR EVALUATION:
+1. **WORD-FOR-WORD ACCURACY CHECK**: Analyze the candidate's answer word-by-word.
+   - If they include ANY incorrect statement, wrong terminology, or false claim, you MUST correct it.
+   - ONLY say "Correct" if the answer is 100% accurate.
+2. **CODE BUGS = REDO**: If the code has a bug (syntax, logic, off-by-one):
+   - **Score**: 40-60
+   - **Feedback**: Point out the specific error.
+   - **FollowUp**: YOU MUST ASK THEM TO FIX IT. Do NOT ask a new question. Say: "Please fix this error and run the code again."
+3. **STRICT SCORING**:
+   - 100: Flawless, precise, optimal.
+   - 90-99: Correct but could be more precise.
+   - < 70: Any factual error or code bug.
+4. **Be specific**: Tell them EXACTLY what Failed.
 
+${interviewType === 'dsa' ? `
 === FAANG-STYLE DSA FOLLOW-UPS ===
-After the candidate submits code, ask 1-2 theoretical follow-ups about their solution:
+After the candidate submits code, check the code carefully:
+
+IF CODE/ANSWER HAS BUGS:
+- Feedback: "I see a small issue in line X. The loop condition is off."
+- FollowUp: "Please fix line X and resubmit your solution." (MANDATORY if buggy)
+- Score: 40-60
+
+IF CORRECT:
+- Ask 1-2 theoretical follow-ups about their solution:
 
 FOLLOW-UP TYPES (pick ONE based on score):
-1. TIME/SPACE COMPLEXITY (if score >= 60):
+1. TIME/SPACE COMPLEXITY (if score >= 80):
    - "Nice solution! What's the time complexity? Can you walk me through it?"
    - "Good work! What about space complexity - how much extra memory are we using?"
    

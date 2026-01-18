@@ -10,7 +10,7 @@ import {
     updateAllRanks,
     archiveBabuaOfMonth
 } from '../controllers/babuaLeaderboardController.js';
-import { protect, restrictTo } from '../middleware/auth.js';
+import { protect, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -29,7 +29,7 @@ router.get('/weekly-climbers', getWeeklyClimbersLeaderboard);
 router.get('/my-rank', protect, getMyRank);
 
 // Admin routes
-router.post('/update-ranks', protect, restrictTo('admin'), updateAllRanks);
-router.post('/archive-babua-of-month', protect, restrictTo('admin'), archiveBabuaOfMonth);
+router.post('/update-ranks', protect, authorize('admin'), updateAllRanks);
+router.post('/archive-babua-of-month', protect, authorize('admin'), archiveBabuaOfMonth);
 
 export default router;

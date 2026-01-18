@@ -12,15 +12,35 @@ class SpeechService {
         this.preferredVoice = null;
         this.activeUtterance = null; // Keep reference to prevent GC
 
-        // Initialize Speech Recognition if available
+        // Initialize Speech Recognition
+        this.initializeRecognition();
+    }
+
+    initializeRecognition() {
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            // Clean up existing instance if any
+            if (this.recognition) {
+                try {
+                    this.recognition.onend = null;
+                    this.recognition.onerror = null;
+                    this.recognition.onresult = null;
+                    this.recognition.abort();
+                } catch (e) {
+                    console.warn('Error cleanup recognition:', e);
+                }
+            }
+
             this.recognition = new SpeechRecognition();
             this.recognition.continuous = true;
             this.recognition.interimResults = true;
             this.recognition.lang = 'en-US';
+            this.consecutiveNetworkErrors = 0; // Track errors to prevent loops
 
             this.recognition.onresult = (event) => {
+                // Reset error counter on success
+                this.consecutiveNetworkErrors = 0;
+
                 let transcript = '';
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     if (event.results[i].isFinal) {
@@ -36,25 +56,85 @@ class SpeechService {
                 console.warn('Speech recognition error:', event.error);
                 this.isListening = false;
 
-                // Provide helpful error messages
                 if (event.error === 'network') {
-                    console.warn('Network error - speech recognition requires internet. Use text input instead.');
+                    this.consecutiveNetworkErrors++;
+                    console.warn(`Network error count: ${this.consecutiveNetworkErrors}`);
+
+                    // Increased tolerance to 6 errors
+                    if (this.consecutiveNetworkErrors > 6) {
+                        console.error('Too many network errors, stopping auto-restart.');
+                        this.shouldKeepListening = false; // Stop trying
+                        // We will emit error so UI shows "Stopped"
+                    } else {
+                        // Periodic hard reset (every 2nd error) to try and clear bad state
+                        // without thrashing instance every single time
+                        if (this.consecutiveNetworkErrors % 2 === 0) {
+                            setTimeout(() => {
+                                if (this.shouldKeepListening) {
+                                    console.log('Periodic hard reset of speech recognition...');
+                                    this.initializeRecognition();
+                                    // Helper will be called by onend logic usually, but let's ensure we are ready
+                                }
+                            }, 200);
+                        }
+                    }
                 } else if (event.error === 'not-allowed') {
                     console.warn('Microphone access denied. Please allow microphone permission.');
+                    this.shouldKeepListening = false;
                 } else if (event.error === 'no-speech') {
-                    console.warn('No speech detected. Try speaking louder or closer to the mic.');
+                    // No speech is fine, just restart
                 }
 
                 // Emit error event for UI feedback
                 if (this.onError) {
-                    this.onError(event.error);
+                    // If we stopped due to too many errors, send a special message
+                    if (this.consecutiveNetworkErrors > 6 && event.error === 'network') {
+                        this.onError('network-fatal');
+                    } else {
+                        // Don't show toast for every non-fatal network error, just log it
+                        if (event.error !== 'network') {
+                            this.onError(event.error);
+                        }
+                    }
                 }
             };
 
             this.recognition.onend = () => {
-                this.isListening = false;
+                // Auto-restart if we should keep listening AND haven't hit error limit
+                if (this.shouldKeepListening) {
+                    console.log('Speech recognition ended, checking restart...');
+
+                    // Exponential backoff: 0 errors -> 100ms, 1 -> 1000ms, 2 -> 2000ms, 3 -> 4000ms...
+                    // This gives the network time to recover.
+                    let delay = 100;
+                    if (this.consecutiveNetworkErrors > 0) {
+                        delay = Math.min(1000 * Math.pow(2, this.consecutiveNetworkErrors - 1), 8000);
+                        console.log(`Waiting ${delay}ms before restart attempt...`);
+                    }
+
+                    try {
+                        setTimeout(() => {
+                            if (this.shouldKeepListening && !this.isSpeaking && this.recognition) {
+                                try {
+                                    this.recognition.start();
+                                } catch (err) {
+                                    console.warn('Restart failed:', err);
+                                    this.isListening = false;
+                                }
+                            }
+                        }, delay);
+                    } catch (e) {
+                        console.warn('Failed to auto-restart recognition:', e);
+                        this.isListening = false;
+                    }
+                } else {
+                    this.isListening = false;
+                }
             };
         }
+
+        // Flag to track if user wants mic on
+        this.shouldKeepListening = false;
 
         // Pre-load voices
         if (this.synthesis) {
@@ -112,9 +192,32 @@ class SpeechService {
         }
     }
 
-    // Get all available voices
+    // Get all available voices - filter duplicates and keep unique voices
     getAvailableVoices() {
-        return this.synthesis.getVoices().filter(v => v.lang.startsWith('en') && !v.name.includes('Beauregard'));
+        const allVoices = this.synthesis.getVoices().filter(v => v.lang.startsWith('en') && !v.name.includes('Beauregard'));
+
+        // Filter out duplicate voices that have same voice engine but different names
+        // Some Windows voices like "Microsoft David" and variations are identical
+        const seenVoiceIds = new Set();
+        const uniqueVoices = [];
+
+        for (const voice of allVoices) {
+            // Create a unique identifier based on voice characteristics
+            // Voices with same localService + lang + voiceURI pattern are likely duplicates
+            const voiceSignature = `${voice.localService}-${voice.lang}-${voice.name.replace(/\s+(Desktop|Mobile|Online)$/i, '')}`;
+
+            // Skip known duplicate voice patterns
+            const isDuplicate =
+                voice.name.toLowerCase().includes('rudolf') || // Rudolph typically mirrors David
+                (seenVoiceIds.has(voiceSignature));
+
+            if (!isDuplicate) {
+                seenVoiceIds.add(voiceSignature);
+                uniqueVoices.push(voice);
+            }
+        }
+
+        return uniqueVoices;
     }
 
     // Manually set a voice by its URI
@@ -130,30 +233,85 @@ class SpeechService {
         return false;
     }
 
-    // Clean text for speech - remove markdown and symbols
+    // Clean text for speech - remove markdown, symbols, and format for natural reading
     cleanTextForSpeech(text) {
         if (!text) return '';
 
         return text
-            // Remove markdown headers
-            .replace(/#{1,6}\s*/g, '')
-            // Remove bold/italic markdown
+            // Handle code blocks - replace with summary instead of reading code
+            .replace(/```[\s\S]*?```/g, ' Here is a code example. ')
+
+            // Handle inline code - just read the content without backticks
+            .replace(/`([^`]+)`/g, '$1')
+
+            // Remove markdown bold/italic FIRST so it doesn't conflict with math operators
             .replace(/\*\*([^*]+)\*\*/g, '$1')
             .replace(/\*([^*]+)\*/g, '$1')
             .replace(/__([^_]+)__/g, '$1')
             .replace(/_([^_]+)_/g, '$1')
-            // Remove code blocks
-            .replace(/```[\s\S]*?```/g, 'code block')
-            .replace(/`([^`]+)`/g, '$1')
+
+            // Remove markdown headers
+            .replace(/#{1,6}\s*/g, '')
+
             // Remove links, keep text
             .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+
+            // Remove metadata tags like [TYPE:CODING], [NOTE], [10 pts]
+            .replace(/\[[A-Z0-9_\s:]+\]/g, '')
+
             // Remove bullet points and list markers
             .replace(/^[\s]*[-*+]\s+/gm, '')
             .replace(/^[\s]*\d+\.\s+/gm, '')
-            // Remove special symbols that sound weird when spoken
-            .replace(/[#@$%^&*()_+=\[\]{}<>|\\\/~`]/g, ' ')
-            // Remove multiple spaces
+
+            // Handle "Example:" or "Examples:" sections - summarize instead of reading all
+            .replace(/(?:For )?[Ee]xample[s]?:\s*\n([\s\S]*?)(?=\n\n|\n[A-Z]|$)/g, ' Here are some examples. ')
+            .replace(/(?:Sample )?[Ii]nput[s]?:\s*.*?(?:Sample )?[Oo]utput[s]?:\s*.*?(?=\n\n|\n[A-Z]|$)/gs, ' See the examples provided. ')
+
+            // Mathematical operators - convert to spoken words
+            // NOW safe to process math symbols since bold ** is already gone
+            .replace(/\^(\d+)/g, ' raised to the power of $1 ')
+            .replace(/\*\*/g, ' raised to the power of ')
+            .replace(/>=/g, ' greater than or equal to ')
+            .replace(/<=/g, ' less than or equal to ')
+            .replace(/!=/g, ' not equal to ')
+            .replace(/==/g, ' equals ')
+            .replace(/->/g, ' arrow ')
+            .replace(/=>/g, ' arrow ')
+            .replace(/<-/g, ' arrow ')
+            .replace(/\|\|/g, ' or ')
+            .replace(/&&/g, ' and ')
+            .replace(/\+\+/g, ' plus plus ')
+            .replace(/--/g, ' minus minus ')
+            .replace(/O\(([^)]+)\)/g, ' O of $1 ') // Big O notation
+
+            // Common programming symbols
+            .replace(/\[\]/g, ' array ')
+            .replace(/\{\}/g, ' object ')
+            .replace(/\(\)/g, ' ')
+            .replace(/\[([^\]]+)\]/g, '$1') // Array indices - just read the content
+
+            // Handle constraints section - read naturally
+            .replace(/Constraints?:\s*/gi, 'The constraints are: ')
+
+            // Clean up special characters that shouldn't be read
+            .replace(/[#@$%&*()_+=\[\]{}<>|\\\/~`]/g, ' ')
+
+            // Clean up quotes
+            .replace(/["']/g, '')
+
+            // Handle numbers with commas
+            .replace(/(\d),(\d)/g, '$1$2')
+
+            // Remove excessive whitespace
             .replace(/\s+/g, ' ')
+
+            // Remove newlines for smoother speech
+            .replace(/\n/g, '. ')
+
+            // Clean up multiple periods
+            .replace(/\.{2,}/g, '.')
+            .replace(/\.\s*\./g, '.')
+
             // Trim
             .trim();
     }
@@ -205,6 +363,21 @@ class SpeechService {
                         this.isSpeaking = false;
                         this.activeUtterance = null;
                         if (this.onSpeakingChange) this.onSpeakingChange(false);
+
+                        // Resume listening if it was active
+                        if (this.shouldKeepListening) {
+                            setTimeout(() => {
+                                try {
+                                    // Check again in case stopped manually during delay
+                                    if (this.shouldKeepListening && !this.isListening) {
+                                        this.recognition.start();
+                                        this.isListening = true;
+                                    }
+                                } catch (e) {
+                                    // Ignore already started errors
+                                }
+                            }, 500);
+                        }
                     }
                     if (onEnd && !this.cancelled && mySpeechId === this.currentSpeechId) onEnd();
                     resolve();
@@ -335,6 +508,7 @@ class SpeechService {
         try {
             // Check if already started
             try {
+                this.shouldKeepListening = true; // User wants mic on
                 this.recognition.start();
                 this.isListening = true;
                 return true;
@@ -343,7 +517,18 @@ class SpeechService {
                 if (e.error === 'no-speech' || e.message?.includes('active')) {
                     return true;
                 }
-                throw e;
+
+                // If another error occurred, the instance might be buggy.
+                console.warn('Start failed, attempting to re-initialize recognition:', e);
+                try {
+                    this.initializeRecognition();
+                    this.recognition.start();
+                    this.isListening = true;
+                    return true;
+                } catch (retryError) {
+                    console.error('Failed to restart even after re-initialization:', retryError);
+                    throw retryError;
+                }
             }
         } catch (error) {
             console.error('Error starting speech recognition:', error);
@@ -353,6 +538,7 @@ class SpeechService {
 
     // Stop listening
     stopListening() {
+        this.shouldKeepListening = false; // User explicitly stopping
         if (this.recognition && this.isListening) {
             this.recognition.stop();
             this.isListening = false;

@@ -607,6 +607,42 @@ router.get('/subscription', protect, async (req, res) => {
 });
 
 /**
+ * @route   GET /api/adaptive-revision/:id
+ * @desc    Get a single revision by ID
+ * @access  Private
+ */
+router.get('/:id', protect, async (req, res) => {
+    try {
+        // specific check to avoid conflict with other routes like /subscription or /stats
+        if (['subscription', 'stats', 'plan', 'today', 'missed', 'upcoming', 'suggestions'].includes(req.params.id)) {
+            return res.status(404).json({ success: false, message: 'Route not found' });
+        }
+
+        const revision = await AdaptiveRevision.findOne({
+            _id: req.params.id,
+            user: req.user._id
+        });
+
+        if (!revision) {
+            return res.status(404).json({
+                success: false,
+                message: 'Revision not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: revision
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+/**
  * @route   POST /api/adaptive-revision/subscribe
  * @desc    Request premium subscription (requires admin verification after payment)
  * @access  Private

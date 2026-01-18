@@ -101,12 +101,18 @@ export default function RevisionQuizPage() {
 
     const fetchRevisionDetails = async () => {
         try {
-            const revisionRes = await api.get('/adaptive-revision/plan?view=day');
-            const rev = revisionRes.data.data.revisions?.find(r => r._id === revisionId);
-            setRevision(rev || { course: 'dsa', topicId: 'arrays', topicTitle: 'Demo Topic' });
+            const revisionRes = await api.get(`/adaptive-revision/${revisionId}`);
+            setRevision(revisionRes.data.data);
         } catch (error) {
             console.error('Failed to fetch revision:', error);
-            setRevision({ course: 'dsa', topicId: 'arrays', topicTitle: 'Demo Topic' });
+            // Fallback to searching in plan if single fetch fails (backward compatibility)
+            try {
+                const planRes = await api.get('/adaptive-revision/plan?view=day');
+                const rev = planRes.data.data.revisions?.find(r => r._id === revisionId);
+                setRevision(rev || { course: 'dsa', topicId: 'arrays', topicTitle: 'Demo Topic' });
+            } catch (err) {
+                setRevision({ course: 'dsa', topicId: 'arrays', topicTitle: 'Demo Topic' });
+            }
         }
     };
 

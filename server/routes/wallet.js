@@ -306,6 +306,86 @@ router.post('/topup/verify', protect, async (req, res) => {
     }
 });
 
+// Notify admin about manual payment
+router.post('/notify-payment', protect, async (req, res) => {
+    try {
+        const { amount, utrNumber, orderId, couponCode } = req.body;
+
+        if (!amount || !utrNumber) {
+            return res.status(400).json({
+                success: false,
+                message: 'Amount and UTR number are required'
+            });
+        }
+
+        // Find or create wallet
+        let wallet = await Wallet.findOne({ user: req.user._id });
+        if (!wallet) {
+            wallet = new Wallet({ user: req.user._id });
+        }
+
+        // Add pending transaction
+        wallet.transactions.push({
+            type: 'topup',
+            amount: amount,
+            description: `Manual Payment Verification: ₹${amount}`,
+            paymentGateway: 'manual',
+            gatewayTransactionId: utrNumber,
+            gatewayOrderId: orderId || `manual_${Date.now()}`,
+            status: 'pending',
+            balanceAfter: wallet.balance // Balance doesn't change yet
+        });
+
+        await wallet.save();
+        const transactionId = wallet.transactions[wallet.transactions.length - 1]._id;
+
+        // Find all admin users and send notification to each
+        const adminUsers = await User.find({ role: 'admin' }).select('_id');
+
+        // Create notification for each admin about pending payment
+        for (const admin of adminUsers) {
+            await Notification.create({
+                user: admin._id,
+                title: '💳 Payment Verification Request',
+                message: `User ${req.user.name || req.user.email} has reported a payment of ₹${amount}. UTR: ${utrNumber}. Order: ${orderId || 'Manual'}. Coupon: ${couponCode || 'None'}`,
+                type: 'info',
+                link: '/admin/payments', // Updated link to new page
+                metadata: {
+                    type: 'payment_verification',
+                    amount,
+                    utrNumber,
+                    orderId,
+                    couponCode,
+                    userId: req.user._id,
+                    userEmail: req.user.email,
+                    userName: req.user.name,
+                    transactionId
+                }
+            });
+        }
+
+        // Also notify the user that their request has been received
+        await Notification.create({
+            user: req.user._id,
+            title: 'Payment Verification Submitted',
+            message: `Your payment of ₹${amount} has been submitted for verification. UTR: ${utrNumber}. We will credit your wallet within 24 hours after verification.`,
+            type: 'success',
+            link: '/wallet'
+        });
+
+        res.json({
+            success: true,
+            message: 'Payment notification sent to admin. Your wallet will be credited within 24 hours after verification.'
+        });
+    } catch (error) {
+        console.error('Error sending payment notification:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to send payment notification'
+        });
+    }
+});
+
 // Manual top-up for testing (development only)
 router.post('/topup/test', protect, async (req, res) => {
     try {
@@ -351,6 +431,56 @@ router.post('/interview/charge', protect, checkGlobalLimit('mockInterview'), asy
         const { interviewType } = req.body;
         const INTERVIEW_COST = 100; // 100 babua points
 
+        // Charge for interview using Babua Coins (Gamification Points)
+        // Find user to check points
+        const user = await User.findById(req.user._id);
+
+        // Check balance (Babua Coins)
+        if (user.babuaCoins < INTERVIEW_COST) {
+            return res.status(400).json({
+                success: false,
+                message: 'Insufficient Babua Points. You need 100 points to start an AI interview.',
+                required: INTERVIEW_COST,
+                currentBalance: user.babuaCoins
+            });
+        }
+
+        // Deduct points
+        user.babuaCoins -= INTERVIEW_COST;
+        await user.save();
+
+        // Optionally, we could record this transaction in Wallet for history, 
+        // but since it's a different currency (Points), keep it simple for now.
+
+        res.json({
+            success: true,
+            message: 'Interview session started',
+            data: {
+                charged: INTERVIEW_COST,
+                newBalance: user.babuaCoins
+            }
+        });
+    } catch (error) {
+        console.error('Error charging for interview:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Error processing interview charge'
+        });
+    }
+});
+
+// Generic wallet debit for services (e.g., real interviewer booking)
+router.post('/debit', protect, async (req, res) => {
+    try {
+        const { amount, type, description, metadata } = req.body;
+
+        if (!amount || amount <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid amount specified'
+            });
+        }
+
         // Find or create wallet
         let wallet = await Wallet.findOne({ user: req.user._id });
         if (!wallet) {
@@ -359,31 +489,45 @@ router.post('/interview/charge', protect, checkGlobalLimit('mockInterview'), asy
         }
 
         // Check balance
-        if (!wallet.hasSufficientBalance(INTERVIEW_COST)) {
+        if (wallet.balance < amount) {
             return res.status(400).json({
                 success: false,
-                message: 'Insufficient balance. You need 100 babua points to start an AI interview.',
-                required: INTERVIEW_COST,
+                message: `Insufficient balance. Required: ₹${amount}, Available: ₹${wallet.balance}`,
+                required: amount,
                 currentBalance: wallet.balance
             });
         }
 
-        // Charge for interview
-        await wallet.chargeForInterview(INTERVIEW_COST, interviewType || 'General');
+        // Deduct balance
+        wallet.balance -= amount;
+        wallet.totalSpent = (wallet.totalSpent || 0) + amount;
+
+        // Add transaction record
+        wallet.transactions.push({
+            type: 'call_charge', // Using existing enum value
+            amount: amount,
+            description: description || `Service charge: ${type || 'purchase'}`,
+            status: 'completed',
+            balanceAfter: wallet.balance,
+            metadata: metadata || {}
+        });
+
+        await wallet.save();
 
         res.json({
             success: true,
-            message: 'Interview session started',
+            message: `₹${amount} debited successfully`,
             data: {
-                charged: INTERVIEW_COST,
-                newBalance: wallet.balance
+                debited: amount,
+                newBalance: wallet.balance,
+                transactionId: wallet.transactions[wallet.transactions.length - 1]._id
             }
         });
     } catch (error) {
-        console.error('Error charging for interview:', error);
+        console.error('Error debiting wallet:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Error processing interview charge'
+            message: error.message || 'Error processing wallet debit'
         });
     }
 });
@@ -464,7 +608,7 @@ router.post('/unlock-feature', protect, async (req, res) => {
                 title: 'Mentor Circle Unlocked! 🎉',
                 message: 'Welcome to the exclusive Mentor Circle! You will be added to the private mentor group shortly. Check your email for the invitation link.',
                 type: 'success',
-                link: '/mentor-circle'
+                link: '/chai-tapri'
             });
 
             // Update user's mentor circle status

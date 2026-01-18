@@ -254,23 +254,28 @@ export default function MockInterview() {
     const [walletError, setWalletError] = useState('');
     const INTERVIEW_COST = 100; // 100 babua points
 
-    // Fetch wallet balance on mount
+    // Fetch points balance on mount
     useEffect(() => {
-        const fetchWalletBalance = async () => {
+        const fetchPointsBalance = async () => {
             if (!user) return;
             setIsLoadingWallet(true);
             try {
-                const response = await api.get('/wallet');
+                // Fetch fresh user data to get accurate babuaCoins
+                const response = await api.get('/auth/me');
                 if (response.data.success) {
-                    setWalletBalance(response.data.data.balance);
+                    setWalletBalance(response.data.data.babuaCoins || 0);
                 }
             } catch (error) {
-                console.error('Error fetching wallet:', error);
+                console.error('Error fetching points:', error);
+                // Fallback to current user context if API fails
+                if (user.babuaCoins !== undefined) {
+                    setWalletBalance(user.babuaCoins);
+                }
             } finally {
                 setIsLoadingWallet(false);
             }
         };
-        fetchWalletBalance();
+        fetchPointsBalance();
     }, [user]);
 
     const startInterview = async () => {
@@ -566,15 +571,13 @@ export default function MockInterview() {
                         </div>
 
                         {/* Error Message */}
-                        {walletError && (
-                            <div className="mb-6 px-6 py-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center gap-3 max-w-xl mx-auto">
-                                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                                <span className="text-red-300 text-sm font-medium">{walletError}</span>
-                                <Link to="/wallet" className="text-amber-400 hover:text-amber-300 text-sm font-bold ml-2 underline">
-                                    Add Points →
-                                </Link>
-                            </div>
-                        )}
+                        <div className="mb-6 px-6 py-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center gap-3 max-w-xl mx-auto">
+                            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                            <span className="text-red-300 text-sm font-medium">{walletError}</span>
+                            <Link to="/how-to-earn" className="text-amber-400 hover:text-amber-300 text-sm font-bold ml-2 underline">
+                                Earn Points →
+                            </Link>
+                        </div>
 
                         <h3 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight">Ready to level up?</h3>
                         <p className="text-slate-400 mb-10 max-w-xl mx-auto text-lg font-medium leading-relaxed">

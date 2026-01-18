@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import UserProfileDropdown from '../components/common/UserProfileDropdown';
 import { useAuth } from '../context/AuthContext';
+import { getAvatarUrl } from '../utils/imageUtils';
 import { Link } from 'react-router-dom';
 import * as THREE from 'three';
 import {
@@ -107,7 +108,7 @@ const navItems = [
 ];
 
 export default function Settings() {
-    const { user, token } = useAuth();
+    const { user, token, updateUser } = useAuth();
     const fileInputRef = useRef(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -160,7 +161,7 @@ export default function Settings() {
                     revisionMode: profile.revisionMode || 'manual'
                 });
                 if (profile.avatar) {
-                    setAvatarPreview(profile.avatar);
+                    setAvatarPreview(getAvatarUrl(profile.avatar));
                 }
             }
         } catch (error) {
@@ -249,8 +250,15 @@ export default function Settings() {
 
             const data = await res.json();
             if (data.success) {
-                setMessage({ type: 'success', text: 'Profile update ho gaya! 🎉' });
+                // Show coins earned message if any
+                if (data.coinsEarned && data.coinsEarned > 0) {
+                    setMessage({ type: 'success', text: `Profile update ho gaya! +${data.coinsEarned} Babua Coins! 🎉💰` });
+                } else {
+                    setMessage({ type: 'success', text: 'Profile update ho gaya! 🎉' });
+                }
                 setAvatarFile(null);
+                // Update global auth state immediately with new coins balance
+                updateUser(data.data);
             } else {
                 setMessage({ type: 'error', text: data.message || 'Update mein dikkat hui!' });
             }

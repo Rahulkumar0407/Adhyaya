@@ -85,7 +85,7 @@ const ReferralSection = () => {
                     <div className="relative z-10">
                         <h3 className="text-lg font-bold text-white mb-2">Invite Friends</h3>
                         <p className="text-indigo-200/70 text-sm mb-6 max-w-sm">
-                            Share your code with friends. Both you and your friend get <span className="text-amber-400 font-bold">200 Babua Points</span> when they verify!
+                            Share your code with friends. Both you and your friend get <span className="text-amber-400 font-bold">100 Babua Points</span> when they verify!
                         </p>
 
                         <div className="space-y-4">
@@ -132,7 +132,7 @@ const ReferralSection = () => {
                             )}
                         </div>
                         <p className="text-purple-200/70 text-sm mb-6 max-w-sm">
-                            Enter a friend's referral code to instantly unlock your <span className="text-amber-400 font-bold">200 Babua Points</span> reward.
+                            Enter a friend's referral code to instantly unlock your <span className="text-amber-400 font-bold">100 Babua Points</span> reward.
                         </p>
 
                         {!referralData?.referralClaimed ? (

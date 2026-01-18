@@ -14,6 +14,8 @@ import Announcement from '../models/Announcement.js';
 import Course from '../models/Course.js';
 import Post from '../models/Post.js'; // Assuming you have a Post model for community
 import NotificationService from '../src/services/notificationService.js';
+import Notification from '../models/Notification.js';
+import SystemConfig from '../models/SystemConfig.js';
 
 const router = express.Router();
 
@@ -262,7 +264,7 @@ router.post('/users/:id/unlock-feature', async (req, res) => {
                 priority: 'high',
                 action: {
                     label: 'View Features',
-                    url: feature === 'mentorCircle' ? '/mentor-circle' : '/revision'
+                    url: feature === 'mentorCircle' ? '/chai-tapri' : '/revision'
                 }
             }, req.app.get('io'));
         } catch (error) {
@@ -1030,8 +1032,7 @@ router.get('/search', async (req, res) => {
     }
 });
 
-import SystemConfig from '../models/SystemConfig.js';
-// ... (imports)
+
 
 // ==================== SYSTEM OPERATIONS ====================
 
@@ -1380,6 +1381,12 @@ router.post('/announcements', async (req, res) => {
             console.error('Announcement notification error:', notifError);
         }
 
+        // Emit socket event for real-time announcement updates in Chai Tapri
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('announcement:new', announcement);
+        }
+
         res.status(201).json({ success: true, announcement, message: 'Announcement sent successfully' });
     } catch (error) {
         console.error('Create announcement error:', error);
@@ -1395,6 +1402,191 @@ router.delete('/announcements/:id', async (req, res) => {
     } catch (error) {
         console.error('Delete announcement error:', error);
         res.status(500).json({ success: false, message: 'Failed to delete announcement' });
+    }
+});
+
+// ==================== SYSTEM OPERATIONS ====================
+
+// GET /api/admin/system/config
+router.get('/system/config', async (req, res) => {
+    try {
+        const [maintenance, limits, globalSettings] = await Promise.all([
+            SystemConfig.getConfig('maintenance'),
+            SystemConfig.getConfig('limits'),
+            SystemConfig.getConfig('global_settings')
+        ]);
+
+        res.json({
+            success: true,
+            config: {
+                maintenance: maintenance || { enabled: false, message: '' },
+                limits: limits || {},
+                globalSettings: globalSettings || {}
+            }
+        });
+    } catch (error) {
+        console.error('Get system config error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch system config' });
+    }
+});
+
+// POST /api/admin/system/maintenance
+// POST /api/admin/system/maintenance
+router.post('/system/maintenance', async (req, res) => {
+    try {
+        const { enabled, message } = req.body;
+
+        const config = await SystemConfig.setConfig('maintenance', {
+            enabled,
+            message: message || 'System is under maintenance. Please try again later.'
+        }, req.user._id);
+
+        // Notify all clients via socket
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('system:maintenance', config.value);
+        }
+
+        res.json({ success: true, message: `Maintenance mode ${enabled ? 'enabled' : 'disabled'}`, config: config.value });
+    } catch (error) {
+        console.error('Toggle maintenance mode error:', error);
+        res.status(500).json({ success: false, message: 'Failed to toggle maintenance mode' });
+    }
+});
+
+// POST /api/admin/system/limits
+router.post('/system/limits', async (req, res) => {
+    try {
+        const { limits } = req.body;
+
+        const currentLimits = await SystemConfig.getConfig('limits') || {};
+        const newLimits = { ...currentLimits, ...limits };
+
+        const config = await SystemConfig.setConfig('limits', newLimits, req.user._id);
+
+        res.json({ success: true, message: 'Usage limits updated', config: config.value });
+    } catch (error) {
+        console.error('Update limits error:', error);
+        res.status(500).json({ success: false, message: 'Failed to update limits' });
+    }
+});
+
+// ==========================================
+// Payment Verification Routes
+// ==========================================
+
+// Get all pending transactions
+router.get('/transactions/pending', async (req, res) => {
+    try {
+        // Find wallets that have pending transactions with manual gateway
+        const wallets = await Wallet.find({
+            'transactions.status': 'pending',
+            'transactions.paymentGateway': 'manual'
+        }).populate('user', 'name email');
+
+        let pendingTransactions = [];
+
+        wallets.forEach(wallet => {
+            wallet.transactions.forEach(tx => {
+                if (tx.status === 'pending' && tx.paymentGateway === 'manual') {
+                    pendingTransactions.push({
+                        _id: tx._id,
+                        user: wallet.user,
+                        amount: tx.amount,
+                        utrNumber: tx.gatewayTransactionId,
+                        orderId: tx.gatewayOrderId,
+                        createdAt: tx.createdAt,
+                        description: tx.description
+                    });
+                }
+            });
+        });
+
+        // Sort by newest first
+        pendingTransactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.json({
+            success: true,
+            count: pendingTransactions.length,
+            transactions: pendingTransactions
+        });
+    } catch (error) {
+        console.error('Error fetching pending transactions:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch pending transactions' });
+    }
+});
+
+// Approve a transaction
+router.post('/transactions/:transactionId/approve', async (req, res) => {
+    try {
+        const { transactionId } = req.params;
+
+        const wallet = await Wallet.findOne({ 'transactions._id': transactionId });
+        if (!wallet) {
+            return res.status(404).json({ success: false, message: 'Transaction not found' });
+        }
+
+        const transaction = wallet.transactions.id(transactionId);
+        if (transaction.status !== 'pending') {
+            return res.status(400).json({ success: false, message: 'Transaction is not in pending state' });
+        }
+
+        // Approve transaction
+        transaction.status = 'completed';
+        wallet.balance += transaction.amount;
+        wallet.totalTopups += transaction.amount;
+        transaction.balanceAfter = wallet.balance;
+
+        await wallet.save();
+
+        // Notify user
+        await Notification.create({
+            user: wallet.user,
+            title: 'Payment Approved! 🎉',
+            message: `Your payment of ₹${transaction.amount} has been verified and added to your wallet.`,
+            type: 'success',
+            link: '/wallet'
+        });
+
+        res.json({ success: true, message: 'Transaction approved successfully' });
+    } catch (error) {
+        console.error('Error approving transaction:', error);
+        res.status(500).json({ success: false, message: 'Failed to approve transaction' });
+    }
+});
+
+// Reject a transaction
+router.post('/transactions/:transactionId/reject', async (req, res) => {
+    try {
+        const { transactionId } = req.params;
+
+        const wallet = await Wallet.findOne({ 'transactions._id': transactionId });
+        if (!wallet) {
+            return res.status(404).json({ success: false, message: 'Transaction not found' });
+        }
+
+        const transaction = wallet.transactions.id(transactionId);
+        if (transaction.status !== 'pending') {
+            return res.status(400).json({ success: false, message: 'Transaction is not in pending state' });
+        }
+
+        // Reject transaction
+        transaction.status = 'failed';
+        await wallet.save();
+
+        // Notify user
+        await Notification.create({
+            user: wallet.user,
+            title: 'Payment Verification Failed ❌',
+            message: `Your payment for ₹${transaction.amount} (UTR: ${transaction.gatewayTransactionId}) could not be verified. Please contact support.`,
+            type: 'error',
+            link: '/wallet'
+        });
+
+        res.json({ success: true, message: 'Transaction rejected successfully' });
+    } catch (error) {
+        console.error('Error rejecting transaction:', error);
+        res.status(500).json({ success: false, message: 'Failed to reject transaction' });
     }
 });
 

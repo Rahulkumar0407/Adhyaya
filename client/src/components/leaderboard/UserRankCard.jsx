@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trophy, ArrowUp, ArrowDown, Minus, ChevronRight, Sparkles } from 'lucide-react';
+import { getAvatarUrl } from '../../utils/imageUtils';
 import RankChangeIndicator from './RankChangeIndicator';
 import { BabuaTitleList } from './BabuaTitleBadge';
 
@@ -57,9 +58,20 @@ export default function UserRankCard({ data, category }) {
                             <div className="text-[10px] text-amber-100/50">Your Babua Position</div>
                         </div>
                     </div>
-                    {userRank.titles && userRank.titles.length > 0 && (
-                        <BabuaTitleList titles={userRank.titles} maxDisplay={2} />
-                    )}
+                    <div className="flex items-center gap-2">
+                        {data.userRank?.user?.avatar && (
+                            <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-500/50">
+                                <img
+                                    src={getAvatarUrl(data.userRank.user.avatar)}
+                                    alt="User"
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        )}
+                        {userRank.titles && userRank.titles.length > 0 && (
+                            <BabuaTitleList titles={userRank.titles} maxDisplay={2} />
+                        )}
+                    </div>
                 </div>
 
                 {/* Main Rank Display */}

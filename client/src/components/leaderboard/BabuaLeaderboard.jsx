@@ -6,6 +6,7 @@ import {
     ChevronDown, ChevronUp, Coffee, Brain, Star, Medal,
     ArrowUp, ArrowDown, Minus, Users, Sparkles
 } from 'lucide-react';
+import { getAvatarUrl } from '../../utils/imageUtils';
 import BabuaOfTheMonthCard from './BabuaOfTheMonthCard';
 import LeaderboardTable from './LeaderboardTable';
 import UserRankCard from './UserRankCard';
@@ -59,9 +60,7 @@ export default function BabuaLeaderboard() {
                 params.append('limit', expanded ? 100 : 10);
                 params.append('page', page);
 
-                if (activeCategory === 'focus-masters') {
-                    params.append('period', activePeriod);
-                }
+                params.append('period', activePeriod);
 
                 const response = await api.get(`${endpoint}?${params}`);
                 if (response.data.success) {
@@ -128,8 +127,8 @@ export default function BabuaLeaderboard() {
                                     setPage(1);
                                 }}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${isActive
-                                        ? `bg-gradient-to-r ${category.color} text-white shadow-lg`
-                                        : 'bg-amber-900/20 text-amber-100/60 hover:bg-amber-900/40 hover:text-amber-100'
+                                    ? `bg-gradient-to-r ${category.color} text-white shadow-lg`
+                                    : 'bg-amber-900/20 text-amber-100/60 hover:bg-amber-900/40 hover:text-amber-100'
                                     }`}
                             >
                                 <Icon className="w-4 h-4" />
@@ -139,23 +138,21 @@ export default function BabuaLeaderboard() {
                     })}
                 </div>
 
-                {/* Period Toggle (only for Focus Masters) */}
-                {activeCategory === 'focus-masters' && (
-                    <div className="flex gap-2 mb-6">
-                        {PERIODS.map(period => (
-                            <button
-                                key={period.id}
-                                onClick={() => setActivePeriod(period.id)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activePeriod === period.id
-                                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                        : 'text-amber-100/50 hover:text-amber-100 hover:bg-amber-900/30'
-                                    }`}
-                            >
-                                {period.label}
-                            </button>
-                        ))}
-                    </div>
-                )}
+                {/* Period Toggle (for all categories) */}
+                <div className="flex gap-2 mb-6">
+                    {PERIODS.map(period => (
+                        <button
+                            key={period.id}
+                            onClick={() => setActivePeriod(period.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activePeriod === period.id
+                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                : 'text-amber-100/50 hover:text-amber-100 hover:bg-amber-900/30'
+                                }`}
+                        >
+                            {period.label}
+                        </button>
+                    ))}
+                </div>
 
                 {/* Leaderboard Table */}
                 <div className="bg-gradient-to-br from-amber-900/20 to-amber-950/30 border border-amber-800/30 rounded-2xl overflow-hidden mb-6">
@@ -183,6 +180,7 @@ export default function BabuaLeaderboard() {
                         category={activeCategory}
                         loading={loading}
                         currentUserId={user?._id}
+                        currentUserAvatar={user?.avatar}
                     />
 
                     {/* Expand/Collapse */}

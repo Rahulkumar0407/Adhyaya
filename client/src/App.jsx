@@ -63,6 +63,7 @@ const StudentAnalytics = lazy(() => import('./pages/StudentAnalytics'));
 const MentorAnalytics = lazy(() => import('./pages/MentorAnalytics'));
 const MentorDashboard = lazy(() => import('./pages/MentorDashboard'));
 const WalletPage = lazy(() => import('./pages/WalletPage'));
+const Notifications = lazy(() => import('./pages/Notifications'));
 const MentorProfileSettings = lazy(() => import('./pages/MentorProfileSettings'));
 
 // Admin Dashboard
@@ -76,6 +77,7 @@ const CouponGenerator = lazy(() => import('./pages/admin/CouponGenerator'));
 const CourseManager = lazy(() => import('./pages/admin/CourseManager'));
 const CommunityCommand = lazy(() => import('./pages/admin/CommunityCommand'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const PaymentVerifications = lazy(() => import('./pages/admin/PaymentVerifications'));
 
 // Page loading fallback
 const PageLoader = () => (
@@ -206,6 +208,7 @@ function App() {
                         <Route path="/doubts/mentor-analytics" element={<MentorAnalytics />} />
                         <Route path="/mentor-dashboard" element={<MentorDashboard />} />
                         <Route path="/wallet" element={<WalletPage />} />
+                        <Route path="/notifications" element={<Notifications />} />
                         <Route path="/mentor/profile" element={<MentorProfileSettings />} />
 
                         {/* Admin Dashboard Routes */}
@@ -218,6 +221,7 @@ function App() {
                             <Route path="mentors" element={<MentorOperations />} />
                             <Route path="health" element={<ServerHealth />} />
                             <Route path="coupons" element={<CouponGenerator />} />
+                            <Route path="payments" element={<PaymentVerifications />} />
                             <Route path="settings" element={<AdminSettings />} />
                         </Route>
                     </Routes>

@@ -96,21 +96,36 @@ router.post('/generate', protect, async (req, res) => {
             }
         }
 
-        // Fallback questions
-        if (availableQuestions.length === 0) {
-            availableQuestions = [
-                { questionText: `What is the core concept of ${topicTitle}?`, options: ["Option A", "Option B", "Option C", "Option D"], correctAnswer: 0, explanation: "Review your notes.", difficulty: 'easy' },
-                { questionText: `Which best describes ${topicTitle}?`, options: ["Definition A", "Definition B", "Definition C", "Definition D"], correctAnswer: 1, explanation: "This is recall-based.", difficulty: 'medium' },
+        // Fallback: ensure we have enough questions for the requested count
+        if (availableQuestions.length < questionCount) {
+            // Generate additional fallback questions to meet the count
+            const fallbackTemplates = [
+                { questionText: `What is the core concept of ${topicTitle}?`, options: ["Concept definition", "Implementation detail", "Edge case handling", "Performance optimization"], correctAnswer: 0, explanation: "Understanding the core concept is fundamental.", difficulty: 'easy' },
+                { questionText: `Which best describes ${topicTitle}?`, options: ["A data structure", "An algorithm", "A design pattern", "A technique"], correctAnswer: 3, explanation: "This is a recall-based question.", difficulty: 'easy' },
+                { questionText: `What is the time complexity typically associated with ${topicTitle}?`, options: ["O(1)", "O(log n)", "O(n)", "O(n log n)"], correctAnswer: 2, explanation: "Review complexity analysis for this topic.", difficulty: 'medium' },
+                { questionText: `In what scenario would you use ${topicTitle}?`, options: ["When you need fast lookup", "When memory is limited", "When data is sorted", "When order doesn't matter"], correctAnswer: 0, explanation: "Understanding use cases is important.", difficulty: 'medium' },
+                { questionText: `What is a common mistake when implementing ${topicTitle}?`, options: ["Off-by-one errors", "Null pointer issues", "Memory leaks", "All of the above"], correctAnswer: 3, explanation: "All these are common pitfalls.", difficulty: 'medium' },
+                { questionText: `How do you optimize ${topicTitle} for large datasets?`, options: ["Use caching", "Use parallel processing", "Use better data structures", "All approaches can help"], correctAnswer: 3, explanation: "Multiple optimization strategies exist.", difficulty: 'hard' },
+                { questionText: `What is the space complexity of ${topicTitle}?`, options: ["O(1)", "O(log n)", "O(n)", "O(n²)"], correctAnswer: 2, explanation: "Space complexity depends on implementation.", difficulty: 'hard' },
+                { questionText: `Which data structure pairs well with ${topicTitle}?`, options: ["Array", "Hash Map", "Stack", "Queue"], correctAnswer: 1, explanation: "Different structures serve different purposes.", difficulty: 'medium' },
+                { questionText: `What prerequisite knowledge is essential for ${topicTitle}?`, options: ["Basic loops", "Recursion", "Pointers", "Object-oriented concepts"], correctAnswer: 1, explanation: "Understanding prerequisites helps mastery.", difficulty: 'easy' },
+                { questionText: `How would you test your implementation of ${topicTitle}?`, options: ["Edge cases only", "Random inputs", "Boundary values", "All of the above"], correctAnswer: 3, explanation: "Comprehensive testing is crucial.", difficulty: 'hard' }
             ];
+
+            // Add fallback questions that aren't duplicates
+            const existingTexts = new Set(availableQuestions.map(q => q.questionText));
+            for (const fallback of fallbackTemplates) {
+                if (availableQuestions.length >= questionCount) break;
+                if (!existingTexts.has(fallback.questionText)) {
+                    availableQuestions.push(fallback);
+                    existingTexts.add(fallback.questionText);
+                }
+            }
         }
 
         // Adaptive difficulty selection
         let selectedQuestions = [];
         if (adaptiveDifficulty) {
-            // Start with startDifficulty and adapt
-            const difficultyOrder = { 'easy': 0, 'medium': 1, 'hard': 2 };
-            let currentDifficultyIndex = difficultyOrder[startDifficulty] || 0;
-
             // Group questions by difficulty
             const questionsByDifficulty = {
                 easy: availableQuestions.filter(q => q.difficulty === 'easy'),
@@ -118,36 +133,38 @@ router.post('/generate', protect, async (req, res) => {
                 hard: availableQuestions.filter(q => q.difficulty === 'hard')
             };
 
-            // Ensure each difficulty has questions
-            Object.keys(questionsByDifficulty).forEach(diff => {
-                if (questionsByDifficulty[diff].length === 0) {
-                    questionsByDifficulty[diff] = availableQuestions.slice(0, 2);
-                }
-            });
-
-            // Build adaptive question set:
-            // - Start with startDifficulty (40% of total)
-            // - Include some medium (40%)
-            // - Include some hard (20%) for challenge
+            // Calculate target counts for each difficulty
             const easyCount = Math.ceil(questionCount * (startDifficulty === 'easy' ? 0.5 : 0.3));
             const mediumCount = Math.ceil(questionCount * 0.3);
-            const hardCount = questionCount - easyCount - mediumCount;
+            const hardCount = Math.max(0, questionCount - easyCount - mediumCount);
 
-            const shuffleArray = (arr) => arr.sort(() => 0.5 - Math.random());
+            const shuffleArray = (arr) => [...arr].sort(() => 0.5 - Math.random());
 
-            selectedQuestions = [
-                ...shuffleArray(questionsByDifficulty.easy).slice(0, easyCount),
-                ...shuffleArray(questionsByDifficulty.medium).slice(0, mediumCount),
-                ...shuffleArray(questionsByDifficulty.hard).slice(0, hardCount)
-            ];
+            // Select questions from each difficulty pool
+            const easyQuestions = shuffleArray(questionsByDifficulty.easy).slice(0, easyCount);
+            const mediumQuestions = shuffleArray(questionsByDifficulty.medium).slice(0, mediumCount);
+            const hardQuestions = shuffleArray(questionsByDifficulty.hard).slice(0, hardCount);
 
-            // Shuffle final order but keep some easy ones at start
-            selectedQuestions = [
-                ...selectedQuestions.filter(q => q.difficulty === 'easy').slice(0, 2),
-                ...shuffleArray(selectedQuestions.slice(2))
-            ];
+            selectedQuestions = [...easyQuestions, ...mediumQuestions, ...hardQuestions];
+
+            // If we don't have enough questions, fill from any available questions
+            if (selectedQuestions.length < questionCount) {
+                const usedIds = new Set(selectedQuestions.map(q => q.questionText));
+                const remainingQuestions = shuffleArray(availableQuestions)
+                    .filter(q => !usedIds.has(q.questionText));
+                const needed = questionCount - selectedQuestions.length;
+                selectedQuestions.push(...remainingQuestions.slice(0, needed));
+            }
+
+            // Shuffle but keep 1-2 easy ones at the start for warm-up
+            const easyStart = selectedQuestions.filter(q => q.difficulty === 'easy').slice(0, Math.min(2, easyCount));
+            const rest = selectedQuestions.filter(q => !easyStart.includes(q));
+            selectedQuestions = [...easyStart, ...shuffleArray(rest)];
+
+            // Ensure we have exactly the requested count
+            selectedQuestions = selectedQuestions.slice(0, questionCount);
         } else {
-            // Random selection
+            // Random selection - simple approach
             selectedQuestions = availableQuestions
                 .sort(() => 0.5 - Math.random())
                 .slice(0, questionCount);
